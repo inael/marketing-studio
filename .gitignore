@@ -1,0 +1,22 @@
+# deps / build
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# env / secrets (vault central IT Booster; nunca commitar .env real)
+.env
+.env.local
+.env.*.local
+
+# projetos de estudo (têm .git próprio; não fazem parte do produto)
+projetos_para_estudo/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log

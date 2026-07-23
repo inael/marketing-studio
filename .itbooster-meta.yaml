@@ -1,0 +1,92 @@
+# .itbooster-meta.yaml — metadata do projeto pro catálogo IT Booster.
+# Schema: tools/catalog/schema-meta.json no monorepo ItBoosterEmpresa.
+
+# === OBRIGATÓRIOS ===
+slug: marketing-studio
+nome: Marketing Studio
+tipo: interno                     # ferramenta interna (social dos produtos IT Booster)
+status: poc                       # em brainstorm/spec; sobe pra dev ao iniciar implementação
+
+# === RECOMENDADOS ===
+descricao: Orquestrador de conteúdo e agendamento social (IG + LinkedIn) multi-produto IT Booster, com GUI de calendário, publicação via API oficial e geração via Higgsfield.
+tem_cobranca: false              # ferramenta interna
+monorepo: true
+
+stack:
+  - nextjs
+  - typescript
+  - supabase
+  - python
+  - inngest
+
+# Ferramenta interna: Logto (SSO do time) é o default; Supabase Auth em avaliação (ver spec §10).
+auth:
+  provider: logto
+
+deploy:
+  backend: coolify
+  frontend: coolify
+  observacoes: App Next.js único + worker Python (publicação/render), tudo no Coolify da VPS.
+
+deploys:
+  app: https://marketing.itbooster.com.br
+
+# === TOOLING / CLAUDE CODE ===
+mcps:
+  - github
+  - higgsfield
+  - plane
+
+skills:
+  - gerar-prd
+  - gerar-diagrama
+  - review
+  - quick-fix
+  - simplify
+  - atualiza-handoff
+
+# === UX / DESIGN ===
+ux_design:
+  libs:
+    - tailwindcss
+    - shadcn-ui
+    - lucide-react
+    - sonner
+    - framer-motion
+  referencias:
+    - ui-ux-pro-max
+    - design-system
+    - brand
+
+docs:
+  diagramas:
+    formato: mermaid
+    pasta: docs/diagramas/
+    skill: gerar-diagrama
+
+# === STACK DE IA ===
+ia_stack:
+  observabilidade: langfuse
+  memoria: none
+
+# === INTEGRAÇÕES ===
+integracoes:
+  - alvo: higgsfield
+    tipo: consome
+    descricao: Geração de imagem/vídeo (personagens do elenco + cenas)
+  - alvo: meta-graph-api
+    tipo: consome
+    descricao: Publicação oficial no Instagram (multi-conta), reusa ig_graph.py
+  - alvo: linkedin-api
+    tipo: consome
+    descricao: Publicação na página da empresa (Community Management API)
+  - alvo: litellm
+    tipo: consome
+    descricao: Geração de legendas/variações (via Tokia/LiteLLM), sempre com revisão humana
+  - alvo: cloudflare-r2
+    tipo: consome
+    descricao: Storage público de mídia (URL exigida pela Graph API)
+
+# === OPCIONAIS ===
+responsavel: inael
+criado_em: 2026-07-23
