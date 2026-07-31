@@ -121,6 +121,21 @@ RLS por `brand` quando virar multi-usuário.
 - **Nome/marca final:** hoje `marketing-studio` (nome de trabalho no PRD era *BoostDeck*). Decidir marca/domínio antes de expor publicamente.
 - **Qualidade do elenco Higgsfield:** definir uma barra visual pra não recair no "cara de IA".
 
+## 12. Motor de conteúdo por concorrente + aprovação diária (visão Inael 2026-07-28)
+
+Fluxo-alvo (Fase C+, depois do piloto publicar):
+
+1. **Página de gestão:** lista as contas IG que temos acesso via API (com status do acesso).
+2. **Concorrentes:** para cada conta, definir **3 concorrentes**. Coletar os posts de **maior engajamento** deles como inspiração.
+   - Fonte viável: **Business Discovery API** da Meta (`business_discovery.username(...)` dá mídia recente + likes/comments de contas Business públicas). Concorrente fora disso = manual/serviço externo.
+3. **Geração:** LLM cria **copy parecida**; **Higgsfield** gera **imagem/vídeo parecidos** (usando **nossos atores** Inael/Karla/Tata/Tarsila quando houver pessoa real); **ElevenLabs** para **voz** dos vídeos; **CapCut** para edição quando necessário.
+4. **Proposta diária:** 1-2 posts baseados em concorrentes + 2 posts autorais (nossa IA). Inael escolhe o de maior potencial.
+5. **Aprovação (~08h):** um **link no Discord** com os planejados. Pacote de aprovação = **prints/referências dos concorrentes** + **descrição do criativo** + **falas/legenda/texto**.
+6. **Pós-aprovação:** o post aprovado é **criado/agendado** e publicado pelo motor (`ig_graph.py`).
+
+Ferramentas: Higgsfield (imagem/vídeo + atores), ElevenLabs (voz), CapCut (edição), Discord (aprovação), Business Discovery (concorrentes).
+Decisões abertas: fonte de dados de concorrentes fora do Business Discovery; limites de custo Higgsfield/ElevenLabs; automação do CapCut (tem API/desktop?).
+
 ## 11. Fora de escopo (agora)
 
 Ads pagos (Meta/Google), X/TikTok/YouTube, billing/multi-tenant para venda externa, integração com CRM (Fase B+), agente 100% autônomo (sempre revisão humana antes de publicar nesta fase).
