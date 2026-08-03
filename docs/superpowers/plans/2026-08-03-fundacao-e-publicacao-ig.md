@@ -4,9 +4,9 @@
 
 **Goal:** App Next.js (Logto) com schema Supabase (brands/posts/media/logs), semeado com a marca IT Booster, capaz de publicar um post (imagem única ou carrossel) no @itboosterglobal via Graph API oficial, a partir de uma GUI mínima (listar/criar/aprovar/publicar).
 
-**Architecture:** Next.js 15 (App Router, TS) serve GUI + API routes. Auth por Logto. Dados no Supabase Postgres self-hosted acessado por postgres.js em código server-only. Mídia sobe pro Cloudflare R2 (URL pública exigida pela Graph API). A publicação IG é um port em TypeScript do fluxo comprovado do `integracoes/instagram/lib/ig_graph.py` (cria container → espera FINISHED → publica → pega permalink). Sem worker Python neste slice (fica pra quando precisar render pesado).
+**Architecture:** Next.js 16 (App Router, TS) serve GUI + API routes. Auth por Logto. Dados no Supabase Postgres self-hosted acessado por postgres.js em código server-only. Mídia sobe pro Cloudflare R2 (URL pública exigida pela Graph API). A publicação IG é um port em TypeScript do fluxo comprovado do `integracoes/instagram/lib/ig_graph.py` (cria container → espera FINISHED → publica → pega permalink). Sem worker Python neste slice (fica pra quando precisar render pesado).
 
-**Tech Stack:** Next.js 15, TypeScript, Tailwind + shadcn/ui, postgres.js, `@logto/next`, `@aws-sdk/client-s3` (R2), vitest.
+**Tech Stack:** Next.js 16, TypeScript, Tailwind + shadcn/ui, postgres.js, `@logto/next`, `@aws-sdk/client-s3` (R2), vitest.
 
 ## Global Constraints
 
@@ -47,7 +47,7 @@
 - Create: `package.json`, `tsconfig.json`, `next.config.ts`, `vitest.config.ts`, `.gitignore` (já existe, ajustar), `.env.example`, `src/app/layout.tsx`, `src/app/page.tsx`
 
 **Interfaces:**
-- Produces: projeto Next.js 15 + TS que roda `npm run dev`, `npm run build`, `npm run test`.
+- Produces: projeto Next.js 16 + TS que roda `npm run dev`, `npm run build`, `npm run test`.
 
 - [ ] **Step 1: Criar o app**
 
@@ -103,7 +103,7 @@ Expected: build passa (página inicial default).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -A && git commit --author="inael <inael.rodrigues@gmail.com>" -m "chore: scaffold Next.js 15 + TS + vitest"
+git add -A && git commit --author="inael <inael.rodrigues@gmail.com>" -m "chore: scaffold Next.js 16 + TS + vitest"
 ```
 
 ---
