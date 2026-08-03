@@ -1,7 +1,7 @@
 # Marketing Studio — Design (spec)
 
 - **Data:** 2026-07-23
-- **Status:** aprovado no brainstorm, aguardando review do Inael antes do plano de implementação
+- **Status:** revisado com o Inael (2026-08-03). Auth = Logto. Pronto pro plano de implementação (writing-plans)
 - **Autor:** Claude Code (sessão com Inael)
 
 ## 1. Objetivo
@@ -115,13 +115,13 @@ RLS por `brand` quando virar multi-usuário.
 
 ## 10. Decisões abertas / dependências
 
-- **Auth:** Logto (padrão IT Booster, SSO do time) vs Supabase Auth (RLS nativo, escolha do PRD). Ferramenta interna, decidir no início da implementação. *(Meta aponta Logto por ora.)*
+- **Auth:** ✅ **Logto** (decidido 2026-08-03). Padrão IT Booster, SSO do time. RLS por brand keyed no `sub` do Logto.
 - **Token por produto:** cada conta precisa do mesmo setup do IT Booster (conta Comercial + Página FB + token longo). Operacional, feito no rollout.
 - **LinkedIn:** app + produto *Community Management API* (aprovação da LinkedIn, ~dias). Bloqueia o publish automático no LinkedIn; até lá, lembrete manual pela GUI.
 - **Nome/marca final:** hoje `marketing-studio` (nome de trabalho no PRD era *BoostDeck*). Decidir marca/domínio antes de expor publicamente.
 - **Qualidade do elenco Higgsfield:** definir uma barra visual pra não recair no "cara de IA".
 
-## 12. Motor de conteúdo por concorrente + aprovação diária (visão Inael 2026-07-28)
+## 11. Motor de conteúdo por concorrente + aprovação diária (visão Inael 2026-07-28)
 
 Fluxo-alvo (Fase C+, depois do piloto publicar):
 
@@ -136,6 +136,6 @@ Fluxo-alvo (Fase C+, depois do piloto publicar):
 Ferramentas: Higgsfield (imagem/vídeo + atores), ElevenLabs (voz), CapCut (edição), Discord (aprovação), Business Discovery (concorrentes).
 Decisões abertas: fonte de dados de concorrentes fora do Business Discovery; limites de custo Higgsfield/ElevenLabs; automação do CapCut (tem API/desktop?).
 
-## 11. Fora de escopo (agora)
+## 12. Fora de escopo (agora)
 
 Ads pagos (Meta/Google), X/TikTok/YouTube, billing/multi-tenant para venda externa, integração com CRM (Fase B+), agente 100% autônomo (sempre revisão humana antes de publicar nesta fase).
