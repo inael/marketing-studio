@@ -1,36 +1,55 @@
-# Encaminhar contato@<domínio do produto> → itbooster.global@gmail.com
+# contato@<domínio do produto> → itbooster.global@gmail.com
 
-Caixa central (decidido 2026-07-28): **itbooster.global@gmail.com**.
-"Receber" e-mail não é o JetSend (só envia). Para receber, usamos **encaminhamento**.
+Caixa central: **itbooster.global@gmail.com**.
 
-## Grupos (a Hostinger só tem caixa em alguns domínios)
+## DECISÃO (2026-07-31): usar NOSSA infra (Mailpit), não ImprovMX
 
-### Grupo A — SEM caixa de e-mail → ImprovMX (grátis, só troca MX)
-Domínios: `freelancego.com.br`, `jetsend.com.br`, `usetokia.com`, `simpleszap.com`, `recapitule.com.br`.
-- **Você (1x, ~1 min/domínio):** criar conta grátis em improvmx.com, adicionar cada domínio, e criar o alias
-  `contato@dominio → itbooster.global@gmail.com` (ou catch-all `*`).
-- **Eu (via API Hostinger):** setar os registros DNS de cada domínio:
-  - MX: `mx1.improvmx.com` (prioridade 10) e `mx2.improvmx.com` (prioridade 20)
-  - TXT SPF: `v=spf1 include:spf.improvmx.com ~all`
-- Como não há e-mail hoje nesses domínios, trocar o MX **não quebra nada**.
+O DarkEmail já recebe e-mail e **já encaminha pro Gmail** em produção. Vamos reusar essa engrenagem
+em vez de um terceiro. (O MX ImprovMX que setei antes nos 5 domínios será **revertido**.)
 
-### Grupo B — JÁ têm caixa Hostinger → NÃO trocar MX
-Domínios: `itbooster.com.br`, `assinaagora.com.br`, `darkemail.school`.
-- Trocar o MX aqui **quebraria** a caixa existente. Em vez disso: no painel de e-mail da Hostinger,
-  criar **encaminhador** `contato@ → itbooster.global@gmail.com` (ou usar a caixa direto).
-- ⚠️ `darkemail.school` está "não está funcionando" na Hostinger (precisa reconectar o domínio antes).
+### Como o recebimento funciona hoje (mapeado na VPS)
+- Container **`email_receiver`** = **Mailpit** (`axllent/mailpit`), escutando **direto na porta 25** da
+  internet (`0.0.0.0:25->1025`). É catch-all: recebe e-mail de qualquer domínio cujo MX aponte pra
+  a VPS `72.61.135.214`. Não há Postfix/Haraka na frente.
+- Mailpit dispara webhook → `POST /api/mailpit-webhook` (Vercel, projeto darkemail).
+- O handler (`api/mailpit-webhook.js`):
+  - endereço de temp-mail → guarda (Redis/Supabase) e mostra na UI;
+  - **endereço reservado** (`SUPPORT_INBOUND_ADDRESSES`, hoje `support@`/`suporte@darkemail.school`)
+    → **NÃO guarda**, **encaminha** pra `SUPPORT_EMAIL_TO` (default `itbooster.global@gmail.com`) +
+    `SUPPORT_EMAIL_CC` (`suporte@itbooster.com.br`) via nosso `sendMail` (SES/JetSend), com
+    **Reply-To = remetente original**.
+- Defesa em profundidade: `api/emails.js` (linhas ~292-299) bloqueia **leitura** dos reservados.
 
-## STATUS 2026-07-31 — DNS aplicado (via API Hostinger, `tools/hostinger_dns.py`)
-- MX ImprovMX (`10 mx1.improvmx.com`, `20 mx2.improvmx.com`) gravado na raiz dos 5 domínios do Grupo A. ✅
-- SPF ImprovMX adicionado em freelancego / jetsend / simpleszap. usetokia e recapitule já tinham SPF do SES → não mexido (evitar SPF duplicado).
-- **Falta só (Inael):** criar conta grátis no improvmx.com, adicionar os 5 domínios (a verificação é automática, o MX já está certo) e o alias `contato@ → itbooster.global@gmail.com`. Depois: enviar um e-mail de teste pra contato@freelancego.com.br e ver cair no Gmail.
+## Plano de implementação (ordem segura, sem quebrar o DarkEmail)
 
-## Ordem sugerida
-1. Você confirma o método (ImprovMX) e cria a conta + aliases dos 5 domínios do Grupo A.
-2. Eu rodo o script que seta MX+SPF nos 5 via API Hostinger (confirmo cada mudança).
-3. ImprovMX valida (o MX já vai estar certo) e o encaminhamento começa a funcionar.
-4. Grupo B: encaminhador no painel Hostinger (te guio); darkemail primeiro reconectar.
+1. **A record** `inbound.itbooster.com.br → 72.61.135.214` (registro novo; não mexe em nada). Vira o
+   host de MX.
+2. **darkemail (código/env) ANTES do MX** — senão os `contato@` viram inbox público:
+   - Adicionar os `contato@<domínio>` ao encaminhamento pro Gmail. Opção limpa: um ramo próprio no
+     `mailpit-webhook.js` (assunto `[Contato <domínio>]`, sem CC de suporte, sem lógica de issue).
+     Opção rápida: juntar na env `SUPPORT_INBOUND_ADDRESSES`.
+   - **Bloquear reserva** dos localparts reservados na tela do DarkEmail (o cliente Pro escolhe alias
+     `<nome>@darkemail.school`). Localizar o endpoint de reserva e barrar:
+     `contato, suporte, support, admin, postmaster, no-reply, noreply, abuse, root, webmaster`.
+     (Só afeta `darkemail.school`; os outros 7 domínios não têm reserva de alias por usuário.)
+   - Deploy no Vercel + testar que um `contato@` de teste encaminha certo.
+3. **Trocar o MX** dos domínios de produto: de ImprovMX → `inbound.itbooster.com.br` (via API Hostinger,
+   `tools/hostinger_dns.py`). Domínios: freelancego.com.br, jetsend.com.br, usetokia.com, simpleszap.com,
+   recapitule.com.br. (darkemail.school e assinaagora.com.br: ver Grupo B.)
+4. **Testar:** enviar de fora pra `contato@freelancego.com.br` → cair em itbooster.global@gmail.com.
+5. **Bônus / conserto:** o MX raiz de `darkemail.school` está na Hostinger (por isso `suporte@` não
+   funciona). Reapontar pro Mailpit (`inbound.itbooster.com.br`) conserta o suporte E habilita
+   `contato@darkemail.school`.
 
-## Observação
-Isso só **recebe**. Para **responder como** contato@dominio pelo Gmail (opcional, depois),
-configura-se "Enviar e-mail como" no Gmail via SMTP (do JetSend ou de um SMTP do domínio).
+## Configuração manual no Gmail (itbooster.global@gmail.com) — opcional
+- **Receber:** nada a fazer, o encaminhado chega. Dá pra criar **filtro/label por produto** (ex:
+  assunto contém `[Contato jetsend]` → label "JetSend").
+- **Responder como `contato@dominio`** (send-as): Gmail > Config > Contas e importação > "Enviar
+  e-mail como" > adicionar `contato@dominio` com SMTP do JetSend/SES (host/porta/credenciais). Assim
+  a resposta sai já como contato@ do produto. É opcional e manual.
+- ⚠️ Um `@gmail.com` comum **não** pode ser o servidor de recebimento (MX) dos domínios; isso continua
+  sendo o Mailpit. O Gmail só recebe o encaminhado e (opcional) envia-como.
+
+## Reverter (se algo der errado)
+- MX: `tools/hostinger_dns.py` regrava o valor anterior (hoje ImprovMX). Nada é destrutivo.
+- darkemail: mudanças de env/código no Vercel têm rollback por deploy.
