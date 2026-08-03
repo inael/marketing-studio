@@ -35,6 +35,19 @@ Nosso escopo = domínios de produto SEM caixa própria. `contato@darkemail.schoo
 **Ordem correta agora:** (1) deploy darkemail confirmado → (2) eu seto envs `CONTATO_DOMAINS` +
 A record → (3) troco o MX. Nunca apontar MX antes do código estar no ar.
 
+## CUTOVER FEITO 2026-08-03
+Deploy darkemail (merge 277b96d) confirmado READY em produção. Executado por mim:
+1. ✅ A record `inbound.itbooster.com.br → 72.61.135.214` (Hostinger API).
+2. ✅ Vercel envs (production) no projeto darkemail: `CONTATO_DOMAINS=freelancego.com.br,jetsend.com.br,usetokia.com,simpleszap.com,recapitule.com.br` + `CONTATO_EMAIL_TO=itbooster.global@gmail.com`. Redeploy do 277b96d aplicou (aliased em www.darkemail.school).
+3. ✅ MX@ dos 5 dominios trocado ImprovMX → `10 inbound.itbooster.com.br` (`tools/hostinger_dns.py set-mailpit`, deleta @/MX antigo + poe novo, verificado que outros registros ficam intactos).
+
+**Falta:** testar (respeitando propagacao de DNS, TTL antigo 3600 = ate ~1h). Enviar pra
+`contato@freelancego.com.br` e ver cair em itbooster.global@gmail.com. Conferivel tb pela API
+do Mailpit (recebimento) na VPS.
+
+**Fora do escopo (com o time darkemail):** `darkemail.school` (MX proprio) e `assinaagora.com.br`
+(tem caixa Hostinger; suporte@ ja roteado via fleet-router do darkemail).
+
 ## Plano de implementação (ordem segura, sem quebrar o DarkEmail)
 
 1. **A record** `inbound.itbooster.com.br → 72.61.135.214` (registro novo; não mexe em nada). Vira o

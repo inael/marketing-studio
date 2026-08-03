@@ -100,6 +100,49 @@ def main():
                 print(f'{e["type"]:6} {e["name"]:10} -> {[r["content"] for r in e["records"]]}')
     elif cmd == "set-improvmx":
         set_improvmx(sys.argv[2], apply)
+    elif cmd == "set-mailpit":
+        # Substitui o MX raiz por 10 inbound.itbooster.com.br (Mailpit da VPS).
+        # Deleta o @/MX atual (ImprovMX) e adiciona o novo. Verifica que nenhum
+        # outro record-set e afetado.
+        domain = sys.argv[2]
+        z, st, _ = zone(domain)
+        if z is None:
+            print(f"{domain}: ERRO zona {st}"); return
+        before_mx = [r["content"] for e in z if e["name"] == "@" and e["type"] == "MX" for r in e["records"]]
+        other_before = sum(1 for e in z if not (e["name"] == "@" and e["type"] == "MX"))
+        print(f"{domain}: MX@ atual = {before_mx}; outros record-sets = {other_before}")
+        if not apply:
+            print("[DRY] deletaria @/MX e poria '10 inbound.itbooster.com.br'"); return
+        st_del, resp_del = api("DELETE", f"/dns/v1/zones/{domain}", {"filters": [{"name": "@", "type": "MX"}]})
+        print(f"DELETE @/MX: {st_del} {resp_del[:120]}")
+        payload = {"overwrite": False, "zone": [{"name": "@", "type": "MX", "ttl": 3600,
+                   "records": [{"content": "10 inbound.itbooster.com.br."}]}]}
+        st_put, resp_put = api("PUT", f"/dns/v1/zones/{domain}", payload)
+        print(f"PUT inbound MX: {st_put} {resp_put[:120]}")
+        z2, _, _ = zone(domain)
+        after_mx = [r["content"] for e in z2 if e["name"] == "@" and e["type"] == "MX" for r in e["records"]] if z2 else []
+        other_after = sum(1 for e in z2 if not (e["name"] == "@" and e["type"] == "MX")) if z2 else -1
+        ok = (after_mx == ["10 inbound.itbooster.com.br."] and other_after == other_before)
+        print(f"AGORA MX@ = {after_mx} | outros = {other_after} (antes {other_before}) | {'OK' if ok else 'CONFERIR!'}")
+    elif cmd == "add-a":
+        domain, name, ip = sys.argv[2], sys.argv[3], sys.argv[4]
+        z, st, body = zone(domain)
+        if z is None:
+            print(f"{domain}: zona nao acessivel na Hostinger (status {st}) — DNS pode estar noutro provedor")
+            return
+        existing = [r["content"] for e in z if e["name"] == name and e["type"] == "A" for r in e["records"]]
+        if existing:
+            print(f"{name}.{domain}: JA existe A -> {existing} (nao mexo)")
+            return
+        if not apply:
+            print(f"[DRY] add A {name}.{domain} -> {ip}")
+            return
+        payload = {"overwrite": False, "zone": [{"name": name, "type": "A", "ttl": 3600, "records": [{"content": ip}]}]}
+        st, resp = api("PUT", f"/dns/v1/zones/{domain}", payload)
+        print(f"add-a {name}.{domain} -> {ip}: PUT {st} {resp[:120]}")
+        z2, _, _ = zone(domain)
+        now = [r["content"] for e in z2 if e["name"] == name and e["type"] == "A" for r in e["records"]] if z2 else []
+        print(f"agora {name}.{domain} A = {now}")
     else:
         print("comando invalido")
 
