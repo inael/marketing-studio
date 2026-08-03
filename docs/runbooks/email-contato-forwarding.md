@@ -41,9 +41,11 @@ Deploy darkemail (merge 277b96d) confirmado READY em produção. Executado por m
 2. ✅ Vercel envs (production) no projeto darkemail: `CONTATO_DOMAINS=freelancego.com.br,jetsend.com.br,usetokia.com,simpleszap.com,recapitule.com.br` + `CONTATO_EMAIL_TO=itbooster.global@gmail.com`. Redeploy do 277b96d aplicou (aliased em www.darkemail.school).
 3. ✅ MX@ dos 5 dominios trocado ImprovMX → `10 inbound.itbooster.com.br` (`tools/hostinger_dns.py set-mailpit`, deleta @/MX antigo + poe novo, verificado que outros registros ficam intactos).
 
-**Falta:** testar (respeitando propagacao de DNS, TTL antigo 3600 = ate ~1h). Enviar pra
-`contato@freelancego.com.br` e ver cair em itbooster.global@gmail.com. Conferivel tb pela API
-do Mailpit (recebimento) na VPS.
+4. ✅ **TESTADO E CONFIRMADO (2026-08-03):** enviado pra `contato@freelancego.com.br` → chegou no
+   Mailpit → log de prod do darkemail: `[Mailpit-Webhook] CONTATO encaminhado
+   contato@freelancego.com.br -> itbooster.global@gmail.com` (sendMail 200, sem 502). MX ja propagado
+   no Google/Cloudflare. Temp-mail do darkemail.school segue intacto (convivencia OK).
+   Os outros 4 dominios (jetsend/usetokia/simpleszap/recapitule) usam a mesma env/MX -> ja valem.
 
 **Fora do escopo (com o time darkemail):** `darkemail.school` (MX proprio) e `assinaagora.com.br`
 (tem caixa Hostinger; suporte@ ja roteado via fleet-router do darkemail).
