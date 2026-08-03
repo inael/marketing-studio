@@ -80,11 +80,11 @@ Em `package.json` scripts: `"test": "vitest run"`, `"test:watch": "vitest"`, `"d
 `.env.example`:
 ```
 DATABASE_URL=postgres://user:pass@host:5432/marketing_studio
-LOGTO_ENDPOINT=https://auth.itbooster.com.br
+LOGTO_ENDPOINT=https://auth.midiaplay.net
 LOGTO_APP_ID=
 LOGTO_APP_SECRET=
 LOGTO_COOKIE_SECRET=
-LOGTO_BASE_URL=https://marketing.itbooster.com.br
+LOGTO_BASE_URL=https://midiaplay.net
 R2_ENDPOINT=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
@@ -731,22 +731,25 @@ git add src/app src/lib/logto.ts && git commit --author="inael <inael.rodrigues@
 
 ---
 
-### Task 8: Deploy no Coolify + status dashboard
+### Task 8: Deploy Vercel (midiaplay.net) + Logto (auth.midiaplay.net) + status dashboard
 
 **Files:**
-- Create: `Dockerfile` (ou usar buildpack Coolify Next.js), `docs/runbooks/deploy-marketing-studio.md`
+- Create: `docs/runbooks/deploy-marketing-studio.md`
 
-- [ ] **Step 1: App em Coolify** apontando pro repo, domínio `marketing.itbooster.com.br` (labels Traefik padrão IT Booster, ver [[reference_coolify_traefik_vps_deploy]] — web/websecure + mytlschallenge + rede coolify). Setar todas as envs do `.env.example` (DATABASE_URL do Supabase self-hosted, LOGTO_*, R2_*, META_ITBOOSTER_*).
+Domínio decidido (2026-08-03): **midiaplay.net** (produto "Midia Play"), auth em **auth.midiaplay.net**.
+midiaplay.net já aponta pra Vercel (`@`→216.198.79.1, `www`→vercel-dns) → app vai pra **Vercel**.
 
-- [ ] **Step 2: Rodar migration** uma vez: `DATABASE_URL=... node scripts/migrate.mjs` (via um job/console do Coolify ou local apontando pro Postgres).
+- [ ] **Step 1: Deploy Vercel** — projeto "marketing-studio" no team IT Booster; adicionar domínio `midiaplay.net`. Setar envs em Production (DATABASE_URL do Supabase self-hosted na VPS, LOGTO_*, R2_*, META_ITBOOSTER_*). Deploy via git push/CLI (autor inael).
 
-- [ ] **Step 3: Logto** — criar app "marketing-studio" no Logto (auth.itbooster.com.br), redirect `https://marketing.itbooster.com.br/logto/callback`, e preencher LOGTO_* nas envs. Ver [[reference_logto_dominio_auth_proprio]].
+- [ ] **Step 2: Migration** uma vez: `DATABASE_URL=... node scripts/migrate.mjs` (local apontando pro Postgres do Supabase self-hosted).
 
-- [ ] **Step 4: Cadastrar `https://marketing.itbooster.com.br` no status dashboard** (status.toolpad.cloud), categoria itbooster-saas/interno.
+- [ ] **Step 3: Logto** — Logto roda na VPS; `auth.midiaplay.net` (A → 72.61.135.214) é fachada Traefik do Logto. Criar app "marketing-studio" no Logto, redirect `https://midiaplay.net/logto/callback`, preencher LOGTO_* (ENDPOINT=`https://auth.midiaplay.net`). Ver [[reference_logto_dominio_auth_proprio]] — issuer fica fixo no ENV ENDPOINT do Logto, não trocar por-app.
 
-- [ ] **Step 5: Smoke test em prod** — logar, publicar 1 post de teste no @itboosterglobal, apagar depois. Documentar no runbook.
+- [ ] **Step 4: Cadastrar `https://midiaplay.net` no status dashboard** (status.toolpad.cloud).
 
-- [ ] **Step 6: Commit** do Dockerfile/runbook.
+- [ ] **Step 5: Smoke test em prod** — logar via auth.midiaplay.net, publicar 1 post de teste no @itboosterglobal, apagar depois.
+
+- [ ] **Step 6: Commit** do runbook.
 
 ---
 
