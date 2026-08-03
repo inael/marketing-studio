@@ -1,6 +1,7 @@
 # deps / build
 node_modules/
 .next/
+out/
 dist/
 build/
 __pycache__/
@@ -20,3 +21,14 @@ projetos_para_estudo/
 .DS_Store
 Thumbs.db
 *.log
+
+# next.js / node
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+coverage/
+.vercel
+*.pem
