@@ -91,6 +91,13 @@ def main():
     elif cmd == "get":
         st, body = api("GET", f"/dns/v1/zones/{sys.argv[2]}")
         print("STATUS", st); print(body[:4000])
+    elif cmd == "mx":
+        z, st, body = zone(sys.argv[2])
+        if z is None:
+            print("ERRO", st); return
+        for e in z:
+            if e["type"] == "MX" or (e["type"] in ("A", "CNAME") and e["name"] in ("@", "mail", "inbound", "mx", "mx1", "mx2")):
+                print(f'{e["type"]:6} {e["name"]:10} -> {[r["content"] for r in e["records"]]}')
     elif cmd == "set-improvmx":
         set_improvmx(sys.argv[2], apply)
     else:

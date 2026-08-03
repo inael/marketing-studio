@@ -20,6 +20,21 @@ em vez de um terceiro. (O MX ImprovMX que setei antes nos 5 domínios será **re
     **Reply-To = remetente original**.
 - Defesa em profundidade: `api/emails.js` (linhas ~292-299) bloqueia **leitura** dos reservados.
 
+## STATUS 2026-07-31 (tarde) — branch darkemail revisada + MERGEADA
+A sessão Claude do projeto darkemail revisou minha branch, melhorou e **mergeou no master**
+(`277b96d`; correções em `c615f42`):
+- Env nova **`TEMPMAIL_DOMAINS`** protege o `darkemail.school` do forwarding (darkemail.school
+  fica **fora** do nosso `contato@`, como recomendado).
+- **502 em falha de forward** (sem perda silenciosa) + normalização de plus-tag.
+- Ainda **inerte** sem as envs `CONTATO_*` → deploy seguro. Aguardando confirmação do deploy Vercel.
+- `financeiro@darkemail.school` já pertence a um user externo real (não conflita com `contato@`).
+
+**Decisão:** `darkemail.school` sai do nosso fluxo de `contato@` (tratado pelo time do darkemail).
+Nosso escopo = domínios de produto SEM caixa própria. `contato@darkemail.school` fica pendente com eles.
+
+**Ordem correta agora:** (1) deploy darkemail confirmado → (2) eu seto envs `CONTATO_DOMAINS` +
+A record → (3) troco o MX. Nunca apontar MX antes do código estar no ar.
+
 ## Plano de implementação (ordem segura, sem quebrar o DarkEmail)
 
 1. **A record** `inbound.itbooster.com.br → 72.61.135.214` (registro novo; não mexe em nada). Vira o
