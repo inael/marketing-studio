@@ -11,6 +11,7 @@
 ## Global Constraints
 
 - Auth = **Logto** (padrão IT Booster). Não usar Supabase Auth.
+- Logto é fachada: `LOGTO_ENDPOINT=https://auth.midiaplay.net` (já configurado + cert no ar). O **issuer** do OIDC volta como `https://auth.itbooster.com.br/oidc` (fixo na instância, 1 Logto p/ N domínios). NÃO forçar/validar issuer casado com o endpoint (gotcha; ver reference_logto_issuer_vs_endpoint). Redirect URI no app Logto: `https://midiaplay.net/logto/callback`.
 - Publicação só de post com `status = approved` (revisão humana obrigatória). Fluxo: `draft → approved → scheduled → published | failed`.
 - Mídia da Graph API tem que estar em **URL pública** (R2). Nunca passar caminho local.
 - Reusar o fluxo comprovado da Graph API (v21.0): 1 imagem = post simples; 2+ = carrossel (`is_carousel_item` nos filhos + `media_type=CAROUSEL` no pai).
