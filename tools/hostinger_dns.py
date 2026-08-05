@@ -143,6 +143,31 @@ def main():
         z2, _, _ = zone(domain)
         now = [r["content"] for e in z2 if e["name"] == name and e["type"] == "A" for r in e["records"]] if z2 else []
         print(f"agora {name}.{domain} A = {now}")
+    elif cmd == "set-vercel-apex":
+        # Troca o A do apex (@) pelos IPs atuais recomendados da Vercel.
+        # O IP antigo 216.198.79.1 e legado: TLS resolve (server=Vercel) mas nao
+        # mapeia dominio->deploy, retornando 404. Rank-1 atual = 216.150.1.1/.16.1.
+        domain = sys.argv[2]
+        new_ips = ["216.150.1.1", "216.150.16.1"]
+        z, st, _ = zone(domain)
+        if z is None:
+            print(f"{domain}: ERRO zona {st}"); return
+        before_a = [r["content"] for e in z if e["name"] == "@" and e["type"] == "A" for r in e["records"]]
+        other_before = sum(1 for e in z if not (e["name"] == "@" and e["type"] == "A"))
+        print(f"{domain}: A@ atual = {before_a}; outros record-sets = {other_before}")
+        if not apply:
+            print(f"[DRY] deletaria @/A e poria {new_ips} (ttl 300)"); return
+        st_del, resp_del = api("DELETE", f"/dns/v1/zones/{domain}", {"filters": [{"name": "@", "type": "A"}]})
+        print(f"DELETE @/A: {st_del} {resp_del[:120]}")
+        payload = {"overwrite": False, "zone": [{"name": "@", "type": "A", "ttl": 300,
+                   "records": [{"content": ip} for ip in new_ips]}]}
+        st_put, resp_put = api("PUT", f"/dns/v1/zones/{domain}", payload)
+        print(f"PUT vercel apex: {st_put} {resp_put[:120]}")
+        z2, _, _ = zone(domain)
+        after_a = [r["content"] for e in z2 if e["name"] == "@" and e["type"] == "A" for r in e["records"]] if z2 else []
+        other_after = sum(1 for e in z2 if not (e["name"] == "@" and e["type"] == "A")) if z2 else -1
+        ok = (sorted(after_a) == sorted(new_ips) and other_after == other_before)
+        print(f"AGORA A@ = {after_a} | outros = {other_after} (antes {other_before}) | {'OK' if ok else 'CONFERIR!'}")
     else:
         print("comando invalido")
 
