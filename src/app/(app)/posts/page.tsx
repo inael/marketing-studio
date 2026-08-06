@@ -44,7 +44,7 @@ export default async function PostsPage() {
                 <form action={publishPostAction.bind(null, p.id)}>
                   <button
                     type="submit"
-                    className="px-3 py-1 rounded bg-purple-600 text-white"
+                    className="px-3 py-1 rounded bg-blue-600 text-white"
                   >
                     Publicar
                   </button>
