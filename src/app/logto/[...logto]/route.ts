@@ -20,11 +20,19 @@ export async function GET(
     case "sign-in":
       await signIn(logtoConfig, {
         redirectUri: `${logtoConfig.baseUrl}/logto/callback`,
+        // pra onde ir depois do login concluido
+        postRedirectUri: `${logtoConfig.baseUrl}/posts`,
       });
       return NextResponse.json({ ok: true });
-    case "callback":
-      await handleSignIn(logtoConfig, request.nextUrl.searchParams);
+    case "callback": {
+      // handleSignIn precisa da URL COMPLETA (com o path real /logto/callback)
+      // pra bater com o redirectUri usado no sign-in; passar so os searchParams
+      // faz o SDK assumir o path default /callback -> redirect_uri_mismatched (500).
+      const callbackUrl = new URL(`${logtoConfig.baseUrl}/logto/callback`);
+      callbackUrl.search = request.nextUrl.search;
+      await handleSignIn(logtoConfig, callbackUrl);
       return NextResponse.json({ ok: true });
+    }
     case "sign-out":
       await signOut(logtoConfig, `${logtoConfig.baseUrl}/`);
       return NextResponse.json({ ok: true });
