@@ -1,26 +1,54 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Marketing Studio — console escuro multi-marca.
+   A cor da CHROME é monocromática de propósito; a única cor "viva" na tela
+   vem da marca de cada post (spine/dot com brand.cor_principal). */
+@theme {
+  --color-canvas: #0b0b0c;
+  --color-panel: #141416;
+  --color-panel2: #1c1c1f;
+  --color-line: #26262a;
+  --color-line2: #34343a;
+  --color-ink: #ededef;
+  --color-dim: #9b9ba3;
+  --color-faint: #6a6a72;
+
+  --color-ok: #34d399;
+  --color-warn: #fbbf24;
+  --color-info: #60a5fa;
+  --color-bad: #fb7185;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-info) 30%, transparent);
+}
+
+/* scrollbar discreta, coerente com o console */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line2) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line2);
+  border-radius: 999px;
+  border: 3px solid var(--color-canvas);
 }

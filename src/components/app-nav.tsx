@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
+  {
+    href: "/posts",
+    label: "Posts",
+    icon: (
+      <path d="M4 5h16M4 12h16M4 19h10" strokeWidth="1.6" strokeLinecap="round" />
+    ),
+  },
+  {
+    href: "/criar",
+    label: "Criar",
+    icon: (
+      <path d="M12 5v14M5 12h14" strokeWidth="1.6" strokeLinecap="round" />
+    ),
+  },
+  {
+    href: "/calendario",
+    label: "Calendário",
+    icon: (
+      <>
+        <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
+        <path d="M4 9h16M8 3v4M16 3v4" strokeWidth="1.6" strokeLinecap="round" />
+      </>
+    ),
+  },
+  {
+    href: "/marcas",
+    label: "Marcas",
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="8" strokeWidth="1.6" />
+        <circle cx="12" cy="12" r="2.5" strokeWidth="1.6" />
+      </>
+    ),
+  },
+];
+
+export function AppNav() {
+  const pathname = usePathname();
+  return (
+    <nav className="flex flex-col gap-0.5 px-3">
+      {ITEMS.map((it) => {
+        const active = pathname === it.href || pathname.startsWith(it.href + "/");
+        return (
+          <Link
+            key={it.href}
+            href={it.href}
+            aria-current={active ? "page" : undefined}
+            className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+              active
+                ? "bg-panel2 text-ink"
+                : "text-dim hover:text-ink hover:bg-panel2/60"
+            }`}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              className={`h-[18px] w-[18px] ${active ? "text-ink" : "text-faint group-hover:text-dim"}`}
+            >
+              {it.icon}
+            </svg>
+            {it.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

@@ -33,10 +33,27 @@ export async function createPost(i: {
   legenda: string;
   hashtags: string[];
   media: string[];
+  scheduled_at?: string | null;
+  status?: PostStatus;
 }): Promise<Post> {
+  const row = {
+    brand_id: i.brand_id,
+    tipo: i.tipo,
+    formato: i.formato,
+    legenda: i.legenda,
+    hashtags: i.hashtags,
+    media: i.media,
+    scheduled_at: i.scheduled_at ?? null,
+    status: i.status ?? "draft",
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [p] = await sql<Post[]>`insert into posts ${sql(i as any)} returning *`;
+  const [p] = await sql<Post[]>`insert into posts ${sql(row as any)} returning *`;
   return p;
+}
+
+export async function deletePost(id: string): Promise<void> {
+  await sql`delete from publish_logs where post_id = ${id}`;
+  await sql`delete from posts where id = ${id}`;
 }
 
 export async function setPostStatus(
