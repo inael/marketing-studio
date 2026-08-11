@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { uploadPublic } from "@/server/r2";
+import { addMedia } from "@/server/media";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,5 +30,7 @@ export async function POST(req: NextRequest) {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const key = `posts/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const url = await uploadPublic(buf, key, file.type);
+  const brandId = String(form.get("brand_id") ?? "") || null;
+  await addMedia({ brand_id: brandId, url, tipo: "image", origem: "upload" });
   return NextResponse.json({ url });
 }

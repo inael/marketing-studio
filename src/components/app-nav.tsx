@@ -29,6 +29,17 @@ const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: "/biblioteca",
+    label: "Biblioteca",
+    icon: (
+      <>
+        <rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="1.6" />
+        <circle cx="9" cy="9.5" r="1.4" strokeWidth="1.6" />
+        <path d="M4.5 16l4-4 3.5 3.5L15 12l4.5 4.5" strokeWidth="1.6" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  {
     href: "/marcas",
     label: "Marcas",
     icon: (

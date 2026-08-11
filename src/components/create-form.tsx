@@ -52,6 +52,7 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
       for (const f of Array.from(files)) {
         const fd = new FormData();
         fd.append("file", f);
+        fd.append("brand_id", brand?.id ?? "");
         const r = await fetch("/api/media", { method: "POST", body: fd });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error ?? "falha no upload");
