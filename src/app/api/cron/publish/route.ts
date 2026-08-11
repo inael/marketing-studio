@@ -4,6 +4,7 @@ import { publishPost } from "@/server/publish";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 300; // pode publicar reel/story (vídeo, lento)
 
 // Publica os posts agendados cujo horário já venceu. Chamado pelo Vercel Cron.
 // Protegido por CRON_SECRET (a Vercel envia Authorization: Bearer <CRON_SECRET>).

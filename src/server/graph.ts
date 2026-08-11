@@ -52,3 +52,41 @@ export async function publishImages(acc: IgAccount, imageUrls: string[], caption
   } catch { /* best-effort */ }
   return { mediaId, permalink };
 }
+
+// Vídeo processa mais devagar que imagem -> polling mais generoso.
+async function publishReel(acc: IgAccount, videoUrl: string, caption: string) {
+  const c = await graphCall(acc.token, "POST", `${acc.igUserId}/media`, {
+    media_type: "REELS", video_url: videoUrl, caption, share_to_feed: "true",
+  });
+  await waitReady(acc.token, c.id, 45, 4000);
+  const r = await graphCall(acc.token, "POST", `${acc.igUserId}/media_publish`, { creation_id: c.id });
+  return r.id as string;
+}
+
+async function publishStorySingle(acc: IgAccount, url: string) {
+  const isVideo = /\.mp4(\?|$)/i.test(url);
+  const params: Record<string, string> = { media_type: "STORIES" };
+  if (isVideo) params.video_url = url;
+  else params.image_url = url;
+  const c = await graphCall(acc.token, "POST", `${acc.igUserId}/media`, params);
+  await waitReady(acc.token, c.id, 45, 4000);
+  const r = await graphCall(acc.token, "POST", `${acc.igUserId}/media_publish`, { creation_id: c.id });
+  return r.id as string;
+}
+
+export async function publishReelPost(acc: IgAccount, videoUrl: string, caption: string) {
+  if (!videoUrl) throw new Error("reel precisa de um vídeo");
+  const mediaId = await publishReel(acc, videoUrl, caption);
+  let permalink: string | null = null;
+  try {
+    const info = await graphCall(acc.token, "GET", mediaId, { fields: "permalink" });
+    permalink = info.permalink ?? null;
+  } catch { /* best-effort */ }
+  return { mediaId, permalink };
+}
+
+export async function publishStoryPost(acc: IgAccount, url: string) {
+  if (!url) throw new Error("story precisa de uma mídia");
+  const mediaId = await publishStorySingle(acc, url);
+  return { mediaId, permalink: null as string | null };
+}

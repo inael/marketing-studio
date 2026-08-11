@@ -1,5 +1,5 @@
 import { getPost, setPostStatus } from "./posts";
-import { publishImages } from "./graph";
+import { publishImages, publishReelPost, publishStoryPost } from "./graph";
 import { formatCaption } from "@/lib/caption";
 import { sql } from "./db";
 
@@ -44,7 +44,15 @@ export async function publishPost(
   try {
     const acc = resolveAccount(brand, deps.env);
     const caption = formatCaption(post.legenda, post.hashtags);
-    const { mediaId, permalink } = await deps.publishImages(acc, post.media, caption);
+    let mediaId: string;
+    let permalink: string | null;
+    if (post.tipo === "reel") {
+      ({ mediaId, permalink } = await publishReelPost(acc, post.media[0], caption));
+    } else if (post.tipo === "story") {
+      ({ mediaId, permalink } = await publishStoryPost(acc, post.media[0]));
+    } else {
+      ({ mediaId, permalink } = await deps.publishImages(acc, post.media, caption));
+    }
     await deps.logPublish(postId, "ig", "published", mediaId, null);
     await deps.setPostStatus(postId, "published", { external_url: permalink });
     return { ok: true, url: permalink };

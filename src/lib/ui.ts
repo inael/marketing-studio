@@ -14,6 +14,7 @@ export const TIPO: Record<string, string> = {
   image: "Imagem",
   carousel: "Carrossel",
   reel: "Reel",
+  story: "Story",
 };
 
 export const FORMATO: Record<string, string> = {

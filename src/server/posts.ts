@@ -5,7 +5,7 @@ export type PostStatus = "draft" | "approved" | "scheduled" | "published" | "fai
 export type Post = {
   id: string;
   brand_id: string;
-  tipo: "carousel" | "image" | "reel";
+  tipo: "carousel" | "image" | "reel" | "story";
   formato: string;
   legenda: string;
   hashtags: string[];

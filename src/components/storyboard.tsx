@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { IMAGE_MODELS, VIDEO_MODELS } from "@/lib/models";
-import { createStoryboardDraft } from "@/app/(app)/storyboard/actions";
+import {
+  createStoryboardDraft,
+  createStoryboardReel,
+  createStoryboardStory,
+} from "@/app/(app)/storyboard/actions";
 import { btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 
 type BrandLite = { id: string; slug: string; nome: string; cor_principal: string };
@@ -111,6 +115,23 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
     }
   }
 
+  async function saveReel(i: number) {
+    const sc = scenes[i];
+    if (!brand || !sc.videoUrl) return;
+    const res = await createStoryboardReel({ brand_id: brand.id, video: sc.videoUrl, legenda: brief });
+    if (res.ok) router.push("/posts");
+    else setError(res.error);
+  }
+
+  async function saveStory(i: number) {
+    const sc = scenes[i];
+    const url = sc.videoUrl || sc.frameUrl;
+    if (!brand || !url) return;
+    const res = await createStoryboardStory({ brand_id: brand.id, url, legenda: brief });
+    if (res.ok) router.push("/posts");
+    else setError(res.error);
+  }
+
   return (
     <div className="space-y-8">
       {/* Briefing */}
@@ -211,6 +232,16 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
                   <button type="button" onClick={() => gerarVideo(i)} disabled={!sc.frameUrl || sc.vBusy} className="rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-info disabled:opacity-40">
                     {sc.vBusy ? "gerando vídeo…" : "Gerar vídeo"}
                   </button>
+                  {sc.videoUrl && (
+                    <button type="button" onClick={() => saveReel(i)} className="rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-ok">
+                      + reel
+                    </button>
+                  )}
+                  {(sc.videoUrl || sc.frameUrl) && (
+                    <button type="button" onClick={() => saveStory(i)} className="rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-ok">
+                      + story
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

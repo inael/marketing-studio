@@ -4,6 +4,7 @@ import { logtoConfig } from "@/lib/logto";
 import { publishPost } from "@/server/publish";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300; // reel/story processam vídeo (lento)
 
 export async function POST(
   _req: NextRequest,
