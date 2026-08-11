@@ -38,6 +38,7 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const [scheduledAt, setScheduledAt] = useState("");
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState<null | CreateInput["mode"]>(null);
+  const [aiBusy, setAiBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const brand = brands.find((b) => b.id === brandId) ?? brands[0];
@@ -86,6 +87,26 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
     } else {
       setError(res.error);
       setBusy(null);
+    }
+  }
+
+  async function genCaption() {
+    if (!brand) return setError("Selecione uma marca.");
+    setError(null);
+    setAiBusy(true);
+    try {
+      const r = await fetch("/api/ai/caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand_id: brand.id, atual: legenda, tipo }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "falha na IA");
+      setLegenda(String(data.caption ?? ""));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "falha na IA");
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -177,13 +198,25 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
         </div>
 
         <div>
-          <label className={labelCls} htmlFor="legenda">Legenda</label>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-xs font-medium text-dim" htmlFor="legenda">
+              Legenda
+            </label>
+            <button
+              type="button"
+              onClick={genCaption}
+              disabled={aiBusy || !brand}
+              className="text-xs text-info transition-opacity hover:opacity-80 disabled:opacity-40"
+            >
+              {aiBusy ? "gerando…" : "✦ Gerar com IA"}
+            </button>
+          </div>
           <textarea
             id="legenda"
             value={legenda}
             onChange={(e) => setLegenda(e.target.value)}
             rows={5}
-            placeholder="Escreva a legenda do post…"
+            placeholder="Escreva a legenda ou gere com IA…"
             className={inputCls}
           />
         </div>

@@ -8,10 +8,13 @@ import { initials } from "@/lib/ui";
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, claims } = await getLogtoContext(logtoConfig);
+  const { isAuthenticated, claims, userInfo } = await getLogtoContext(logtoConfig, {
+    fetchUserInfo: true,
+  });
   if (!isAuthenticated) redirect("/logto/sign-in");
 
-  const who = claims?.email ?? claims?.name ?? claims?.sub ?? "conta";
+  const who = userInfo?.name ?? claims?.name ?? claims?.email ?? claims?.sub ?? "conta";
+  const picture = (userInfo?.picture ?? claims?.picture) as string | undefined;
 
   return (
     <div className="min-h-screen">
@@ -31,9 +34,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         <div className="border-t border-line px-3 py-3">
           <div className="flex items-center gap-3 rounded-md px-3 py-2">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-[11px] font-semibold text-dim">
-              {initials(String(who))}
-            </span>
+            {picture ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={picture}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="h-8 w-8 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-[11px] font-semibold text-dim">
+                {initials(String(who))}
+              </span>
+            )}
             <span className="min-w-0 flex-1 truncate text-xs text-dim" title={String(who)}>
               {who}
             </span>
