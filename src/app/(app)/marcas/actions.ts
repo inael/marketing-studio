@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { updateBrand, type BrandPatch } from "@/server/brands";
+import { addTimeslot, removeTimeslot } from "@/server/timeslots";
 
 async function requireAuth() {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
@@ -23,14 +24,35 @@ export async function saveBrand(id: string, formData: FormData) {
     fonte: str(formData, "fonte"),
     tom_voz: str(formData, "tom_voz"),
     ig_user_id: str(formData, "ig_user_id") || null,
+    linkedin_org_id: str(formData, "linkedin_org_id") || null,
     ativo: formData.get("ativo") === "on",
   };
 
-  // token só é alterado se um novo for digitado (não sobrescreve com vazio)
+  // tokens só são alterados se um novo for digitado (não sobrescreve com vazio)
   const igTok = str(formData, "ig_token");
   if (igTok) patch.ig_token = igTok;
+  const lkTok = str(formData, "linkedin_token");
+  if (lkTok) patch.linkedin_token = lkTok;
 
   await updateBrand(id, patch);
   revalidatePath("/marcas");
   redirect("/marcas");
+}
+
+export async function addSlot(brandId: string, slug: string, formData: FormData) {
+  await requireAuth();
+  const weekday = Number(formData.get("weekday"));
+  const [h, m] = str(formData, "time").split(":").map(Number);
+  if (Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 && Number.isFinite(h)) {
+    await addTimeslot(brandId, weekday, h, Number.isFinite(m) ? m : 0);
+  }
+  revalidatePath(`/marcas/${slug}`);
+  redirect(`/marcas/${slug}`);
+}
+
+export async function removeSlot(id: string, slug: string) {
+  await requireAuth();
+  await removeTimeslot(id);
+  revalidatePath(`/marcas/${slug}`);
+  redirect(`/marcas/${slug}`);
 }

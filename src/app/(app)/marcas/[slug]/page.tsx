@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBrand } from "@/server/brands";
-import { saveBrand } from "../actions";
+import { listTimeslots } from "@/server/timeslots";
+import { saveBrand, addSlot, removeSlot } from "../actions";
 import { PageHeader, btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
+import { Connections } from "@/components/connections";
 
 export const dynamic = "force-dynamic";
+
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const hhmm = (h: number, m: number) =>
+  `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
 export default async function EditBrandPage({
   params,
@@ -15,7 +21,10 @@ export default async function EditBrandPage({
   const b = await getBrand(slug);
   if (!b) notFound();
 
+  const slots = await listTimeslots(b.id);
   const igEnv = Boolean(process.env[`META_${b.slug.toUpperCase()}_IG_USER_ID`]);
+  const igConnected = Boolean(b.ig_user_id) || igEnv;
+  const linkedinConnected = Boolean(b.linkedin_org_id);
   const action = saveBrand.bind(null, b.id);
 
   return (
@@ -83,7 +92,7 @@ export default async function EditBrandPage({
           </div>
         </div>
 
-        <fieldset className="space-y-5 rounded-lg border border-line bg-panel/50 p-5">
+        <fieldset id="ig-fields" className="scroll-mt-8 space-y-5 rounded-lg border border-line bg-panel/50 p-5">
           <legend className="px-2 text-xs font-medium uppercase tracking-wide text-faint">
             Instagram
           </legend>
@@ -122,6 +131,39 @@ export default async function EditBrandPage({
           </div>
         </fieldset>
 
+        <fieldset id="linkedin-fields" className="scroll-mt-8 space-y-5 rounded-lg border border-line bg-panel/50 p-5">
+          <legend className="px-2 text-xs font-medium uppercase tracking-wide text-faint">
+            LinkedIn
+          </legend>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className={labelCls} htmlFor="linkedin_org_id">
+                Organization ID
+              </label>
+              <input
+                id="linkedin_org_id"
+                name="linkedin_org_id"
+                defaultValue={b.linkedin_org_id ?? ""}
+                placeholder="urn:li:organization:…"
+                className={`${inputCls} font-mono`}
+              />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="linkedin_token">
+                Token de acesso
+              </label>
+              <input
+                id="linkedin_token"
+                name="linkedin_token"
+                type="password"
+                placeholder={b.linkedin_token ? "•••• (mantém o atual)" : "colar token"}
+                className={`${inputCls} font-mono`}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+        </fieldset>
+
         <label className="flex items-center gap-3 text-sm text-dim">
           <input
             type="checkbox"
@@ -141,6 +183,55 @@ export default async function EditBrandPage({
           </Link>
         </div>
       </form>
+
+      <section className="mt-10 max-w-2xl border-t border-line pt-8">
+        <h2 className="text-sm font-semibold text-ink">Horários fixos</h2>
+        <p className="mt-1 text-xs text-dim">
+          Horários padrão da marca. O &ldquo;Auto-agendar&rdquo; no Criar joga o post no próximo
+          horário livre.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {slots.length === 0 && <span className="text-sm text-faint">Nenhum horário ainda.</span>}
+          {slots.map((s) => (
+            <form key={s.id} action={removeSlot.bind(null, s.id, b.slug)}>
+              <button className="group inline-flex items-center gap-2 rounded-full border border-line bg-panel2 px-3 py-1.5 text-xs text-dim transition-colors hover:border-bad/50 hover:text-bad">
+                <span>{WEEKDAYS[s.weekday]}</span>
+                <span className="font-mono text-ink group-hover:text-bad">{hhmm(s.hour, s.minute)}</span>
+                <span aria-hidden>×</span>
+              </button>
+            </form>
+          ))}
+        </div>
+        <form action={addSlot.bind(null, b.id, b.slug)} className="mt-4 flex flex-wrap items-end gap-3">
+          <div>
+            <label className={labelCls} htmlFor="weekday">Dia</label>
+            <select id="weekday" name="weekday" defaultValue="1" className={inputCls}>
+              {WEEKDAYS.map((w, i) => (
+                <option key={i} value={i}>{w}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="time">Hora</label>
+            <input id="time" name="time" type="time" defaultValue="09:00" className={inputCls} required />
+          </div>
+          <button type="submit" className={btnGhost}>Adicionar</button>
+        </form>
+      </section>
+
+      <section className="mt-10 max-w-2xl border-t border-line pt-8">
+        <h2 className="text-sm font-semibold text-ink">Conexões</h2>
+        <p className="mt-1 text-xs text-dim">
+          Conecte as redes desta marca. Instagram e LinkedIn já publicam pelo estúdio.
+        </p>
+        <div className="mt-5">
+          <Connections
+            brandId={b.id}
+            igConnected={igConnected}
+            linkedinConnected={linkedinConnected}
+          />
+        </div>
+      </section>
     </>
   );
 }

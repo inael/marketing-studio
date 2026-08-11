@@ -4,6 +4,7 @@ import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { createPost } from "@/server/posts";
 import { publishPost } from "@/server/publish";
+import { nextOpenSlot } from "@/server/timeslots";
 import { revalidatePath } from "next/cache";
 
 export type CreateInput = {
@@ -13,7 +14,7 @@ export type CreateInput = {
   legenda: string;
   hashtags: string[];
   media: string[];
-  mode: "rascunho" | "agendar" | "publicar";
+  mode: "rascunho" | "agendar" | "auto" | "publicar";
   scheduled_at: string | null;
 };
 
@@ -24,7 +25,23 @@ export async function createPostAction(
   if (!isAuthenticated) return { ok: false, error: "sessão expirada, faça login de novo" };
 
   const status =
-    input.mode === "agendar" ? "scheduled" : input.mode === "publicar" ? "approved" : "draft";
+    input.mode === "agendar" || input.mode === "auto"
+      ? "scheduled"
+      : input.mode === "publicar"
+        ? "approved"
+        : "draft";
+
+  let scheduled_at = input.mode === "agendar" ? input.scheduled_at : null;
+  if (input.mode === "auto") {
+    const slot = await nextOpenSlot(input.brand_id);
+    if (!slot) {
+      return {
+        ok: false,
+        error: "Sem horários fixos pra essa marca. Defina em Marcas > Horários fixos.",
+      };
+    }
+    scheduled_at = slot.toISOString();
+  }
 
   try {
     const post = await createPost({
@@ -34,7 +51,7 @@ export async function createPostAction(
       legenda: input.legenda,
       hashtags: input.hashtags,
       media: input.media,
-      scheduled_at: input.mode === "agendar" ? input.scheduled_at : null,
+      scheduled_at,
       status,
     });
 

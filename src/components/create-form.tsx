@@ -254,6 +254,9 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
           <button type="button" onClick={() => submit("agendar")} disabled={!!busy} className={btnGhost}>
             {busy === "agendar" ? "agendando…" : "Agendar"}
           </button>
+          <button type="button" onClick={() => submit("auto")} disabled={!!busy} className={btnGhost}>
+            {busy === "auto" ? "agendando…" : "Auto-agendar"}
+          </button>
           <button type="button" onClick={() => submit("publicar")} disabled={!!busy} className={btnPrimary}>
             {busy === "publicar" ? "publicando…" : "Publicar agora"}
           </button>
