@@ -37,11 +37,17 @@ export async function getAiConfig(
   return { provider, baseUrl, apiKey, model };
 }
 
-export async function getHiggsfieldKey(
+export type HiggsfieldConfig = { apiKey: string; apiSecret: string; model: string };
+export async function getHiggsfield(
   settings?: Record<string, string>
-): Promise<string | null> {
+): Promise<HiggsfieldConfig | null> {
   const s = settings ?? (await getSettings());
-  return s.higgsfield_api_key || null;
+  if (!s.higgsfield_api_key || !s.higgsfield_api_secret) return null;
+  return {
+    apiKey: s.higgsfield_api_key,
+    apiSecret: s.higgsfield_api_secret,
+    model: s.higgsfield_model || "higgsfield-ai/soul/standard",
+  };
 }
 
 export type ElevenConfig = { apiKey: string; voiceId: string };

@@ -108,13 +108,25 @@ export default async function ConfigPage({
           <div>
             <h2 className="text-sm font-semibold text-ink">Higgsfield (imagem)</h2>
             <p className="mt-1 text-xs text-dim">
-              API key pra gerar imagens dos posts direto no estúdio.
+              Gera imagens dos posts. A Higgsfield autentica com{" "}
+              <span className="font-mono">key</span> + <span className="font-mono">secret</span>.
             </p>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelCls} htmlFor="higgsfield_api_key">API key</label>
+              <input id="higgsfield_api_key" name="higgsfield_api_key" type="password" autoComplete="off" placeholder="key…" className={`${inputCls} font-mono`} />
+              <div className="mt-1"><SecretHint set={Boolean(s.higgsfield_api_key)} /></div>
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="higgsfield_api_secret">API secret</label>
+              <input id="higgsfield_api_secret" name="higgsfield_api_secret" type="password" autoComplete="off" placeholder="secret…" className={`${inputCls} font-mono`} />
+              <div className="mt-1"><SecretHint set={Boolean(s.higgsfield_api_secret)} /></div>
+            </div>
+          </div>
           <div>
-            <label className={labelCls} htmlFor="higgsfield_api_key">API key</label>
-            <input id="higgsfield_api_key" name="higgsfield_api_key" type="password" autoComplete="off" placeholder="hf-…" className={`${inputCls} font-mono`} />
-            <div className="mt-1"><SecretHint set={Boolean(s.higgsfield_api_key)} /></div>
+            <label className={labelCls} htmlFor="higgsfield_model">Modelo</label>
+            <input id="higgsfield_model" name="higgsfield_model" defaultValue={s.higgsfield_model ?? ""} placeholder="higgsfield-ai/soul/standard" className={`${inputCls} font-mono`} />
           </div>
         </section>
 

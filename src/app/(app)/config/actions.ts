@@ -27,6 +27,9 @@ export async function saveConfig(formData: FormData) {
   if (lk) patch.litellm_api_key = lk;
   const hk = str(formData, "higgsfield_api_key");
   if (hk) patch.higgsfield_api_key = hk;
+  const hs = str(formData, "higgsfield_api_secret");
+  if (hs) patch.higgsfield_api_secret = hs;
+  patch.higgsfield_model = str(formData, "higgsfield_model");
   const ek = str(formData, "elevenlabs_api_key");
   if (ek) patch.elevenlabs_api_key = ek;
   const ev = str(formData, "elevenlabs_voice_id");

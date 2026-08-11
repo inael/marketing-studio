@@ -39,6 +39,7 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState<null | CreateInput["mode"]>(null);
   const [aiBusy, setAiBusy] = useState(false);
+  const [imgBusy, setImgBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const brand = brands.find((b) => b.id === brandId) ?? brands[0];
@@ -108,6 +109,28 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
       setError(e instanceof Error ? e.message : "falha na IA");
     } finally {
       setAiBusy(false);
+    }
+  }
+
+  async function genImage() {
+    if (!brand) return setError("Selecione uma marca.");
+    const p = window.prompt("Descreva a imagem que a IA deve gerar:", legenda || "");
+    if (!p) return;
+    setError(null);
+    setImgBusy(true);
+    try {
+      const r = await fetch("/api/ai/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: p, brand_id: brand.id, aspect_ratio: "1:1" }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "falha ao gerar imagem");
+      setMedia((m) => [...m, data.url as string]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "falha ao gerar imagem");
+    } finally {
+      setImgBusy(false);
     }
   }
 
@@ -186,6 +209,15 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
               className="grid h-20 w-20 place-items-center rounded-md border border-dashed border-line text-xs text-faint transition-colors hover:border-line2 hover:text-dim disabled:opacity-50"
             >
               {uploading ? "enviando…" : "+ imagem"}
+            </button>
+            <button
+              type="button"
+              onClick={genImage}
+              disabled={imgBusy}
+              title="Gerar imagem com IA (Higgsfield)"
+              className="grid h-20 w-20 place-items-center rounded-md border border-dashed border-line text-center text-[11px] leading-tight text-faint transition-colors hover:border-line2 hover:text-dim disabled:opacity-50"
+            >
+              {imgBusy ? "gerando…" : "✦ gerar"}
             </button>
           </div>
           <input
