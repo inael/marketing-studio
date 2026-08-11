@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPostAction, type CreateInput } from "@/app/(app)/criar/actions";
 import { readableOn } from "@/lib/ui";
 import { btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
+import { IMAGE_MODELS } from "@/lib/models";
 
 type BrandLite = { id: string; slug: string; nome: string; cor_principal: string };
 
@@ -40,6 +41,7 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const [busy, setBusy] = useState<null | CreateInput["mode"]>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [imgBusy, setImgBusy] = useState(false);
+  const [imageModel, setImageModel] = useState(IMAGE_MODELS[0].id);
   const [error, setError] = useState<string | null>(null);
 
   const brand = brands.find((b) => b.id === brandId) ?? brands[0];
@@ -122,7 +124,7 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
       const r = await fetch("/api/ai/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: p, brand_id: brand.id, aspect_ratio: "1:1" }),
+        body: JSON.stringify({ prompt: p, brand_id: brand.id, aspect_ratio: "1:1", model: imageModel }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "falha ao gerar imagem");
@@ -228,6 +230,20 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             className="hidden"
             onChange={(e) => onFiles(e.target.files)}
           />
+          <div className="mt-2 flex items-center gap-2 text-xs text-faint">
+            <span>Modelo da IA de imagem:</span>
+            <select
+              value={imageModel}
+              onChange={(e) => setImageModel(e.target.value)}
+              className="rounded border border-line bg-panel2 px-2 py-1 text-xs text-dim"
+            >
+              {IMAGE_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>

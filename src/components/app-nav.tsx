@@ -19,6 +19,20 @@ const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: "/storyboard",
+    label: "Storyboard",
+    icon: (
+      <>
+        <rect x="4" y="5" width="16" height="14" rx="2" strokeWidth="1.6" />
+        <path
+          d="M9 5v14M15 5v14M4 9.5h5M15 9.5h5M4 14.5h5M15 14.5h5"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+      </>
+    ),
+  },
+  {
     href: "/calendario",
     label: "Calendário",
     icon: (

@@ -1,4 +1,5 @@
 import { sql } from "./db";
+import { uploadPublic } from "./r2";
 
 export type MediaAsset = {
   id: string;
@@ -27,4 +28,21 @@ export async function addMedia(i: {
 
 export async function deleteMedia(id: string): Promise<void> {
   await sql`delete from media_assets where id = ${id}`;
+}
+
+/** baixa uma URL remota (imagem/vídeo), sobe pro R2 e registra na biblioteca */
+export async function saveRemoteMedia(
+  remoteUrl: string,
+  brandId: string | null,
+  origem: string
+): Promise<string> {
+  const res = await fetch(remoteUrl);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const ct = res.headers.get("content-type") || "application/octet-stream";
+  const isVideo = ct.startsWith("video");
+  const ext = isVideo ? "mp4" : ct.includes("png") ? "png" : "jpg";
+  const key = `posts/${origem}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const url = await uploadPublic(buf, key, ct);
+  await addMedia({ brand_id: brandId, url, tipo: isVideo ? "video" : "image", origem });
+  return url;
 }
