@@ -56,6 +56,15 @@ export async function deletePost(id: string): Promise<void> {
   await sql`delete from posts where id = ${id}`;
 }
 
+/** posts agendados cujo horário já venceu (pro cron publicar) */
+export async function listDueScheduled(nowISO: string): Promise<Post[]> {
+  return sql<Post[]>`
+    select * from posts
+    where status = 'scheduled' and scheduled_at is not null and scheduled_at <= ${nowISO}
+    order by scheduled_at asc
+    limit 25`;
+}
+
 export async function setPostStatus(
   id: string,
   status: PostStatus,
