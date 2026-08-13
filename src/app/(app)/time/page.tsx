@@ -28,7 +28,9 @@ export default async function TimePage() {
         <span className="h-2 w-2 rounded-full" style={{ background: PAPEL[p.papel]?.dot }} />
         <span className="text-dim">{PAPEL[p.papel]?.label ?? p.papel}</span>
       </div>
-      <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-dim">{p.tracos || "sem traços definidos"}</p>
+      <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-dim">{p.tracos || "sem traços definidos"}</p>
+      {p.skills && <p className="mt-1.5 line-clamp-1 text-[11px] text-faint">skills: {p.skills}</p>}
+      {p.modelo && <div className="mt-2 inline-block rounded border border-line px-1.5 py-0.5 font-mono text-[11px] text-dim">{p.modelo}</div>}
     </Link>
   );
 

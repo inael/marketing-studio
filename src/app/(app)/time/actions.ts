@@ -15,6 +15,8 @@ export async function savePersona(id: string, formData: FormData) {
     nome: str(formData, "nome"),
     tracos: str(formData, "tracos"),
     instrucoes: str(formData, "instrucoes"),
+    modelo: str(formData, "modelo"),
+    skills: str(formData, "skills"),
     ativo: formData.get("ativo") === "on",
   });
   revalidatePath("/time");

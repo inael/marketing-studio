@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createDraftFromSuggestion } from "@/app/(app)/sugestoes/actions";
 import { TIPO } from "@/lib/ui";
-import { btnPrimary, inputCls, labelCls } from "@/components/ui";
+import { btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 
 type BrandLite = { id: string; slug: string; nome: string; cor_principal: string };
 type Suggestion = {
@@ -18,6 +18,8 @@ type Suggestion = {
 };
 type Grupo = "noticias" | "concorrentes";
 type Meta = { rss: number; competitors: number; warnings?: string[] };
+type Escolha = { titulo: string; por_que: string };
+type Verdict = { gestor: string; escolhas: Escolha[]; ajustes: string; feedback_time: string };
 
 export function Suggestions({ brands }: { brands: BrandLite[] }) {
   const [brandId, setBrandId] = useState(brands[0]?.id ?? "");
@@ -25,6 +27,8 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
   const [noticias, setNoticias] = useState<Suggestion[]>([]);
   const [concorrentes, setConcorrentes] = useState<Suggestion[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [gestorBusy, setGestorBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const brand = brands.find((b) => b.id === brandId);
@@ -32,18 +36,19 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
   const patch = (g: Grupo, i: number, p: Partial<Suggestion>) =>
     setter(g)((s) => s.map((x, j) => (j === i ? { ...x, ...p } : x)));
 
-  async function gerar() {
+  async function gerar(feedback?: string) {
     if (!brand) return setError("Selecione uma marca.");
     setError(null);
     setLoading(true);
     setNoticias([]);
     setConcorrentes([]);
     setMeta(null);
+    setVerdict(null);
     try {
       const r = await fetch("/api/ai/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand_id: brand.id }),
+        body: JSON.stringify({ brand_id: brand.id, feedback }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "falhou");
@@ -67,6 +72,26 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
     else {
       patch(g, i, { saving: false });
       setError(res.error);
+    }
+  }
+
+  async function ativarGestor() {
+    if (!brand) return;
+    setError(null);
+    setGestorBusy(true);
+    try {
+      const r = await fetch("/api/ai/manager", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand_id: brand.id, noticias, concorrentes }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "falhou");
+      setVerdict(data as Verdict);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "falhou");
+    } finally {
+      setGestorBusy(false);
     }
   }
 
@@ -126,7 +151,7 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
             ))}
           </div>
         </div>
-        <button type="button" onClick={gerar} disabled={loading} className={btnPrimary}>
+        <button type="button" onClick={() => gerar()} disabled={loading} className={btnPrimary}>
           {loading ? "o time está analisando…" : "Gerar sugestões"}
         </button>
       </div>
@@ -153,6 +178,61 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
               Ideias dos concorrentes <span className="text-faint">({concorrentes.length})</span>
             </h2>
             <div className="grid gap-3 md:grid-cols-3">{concorrentes.map(card("concorrentes"))}</div>
+          </section>
+
+          <section className="rounded-lg border border-line bg-panel/50 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-ink">Gestor</h2>
+                <p className="mt-0.5 text-xs text-dim">
+                  Ative o gestor pra revisar as ideias do time, escolher as melhores e dar feedback.
+                </p>
+              </div>
+              {!verdict && (
+                <button type="button" onClick={ativarGestor} disabled={gestorBusy} className={btnGhost}>
+                  {gestorBusy ? "gestor analisando…" : "Ativar gestor"}
+                </button>
+              )}
+            </div>
+
+            {verdict && (
+              <div className="mt-4 space-y-4 text-sm">
+                <div className="text-xs text-info">Análise de {verdict.gestor}</div>
+                {verdict.escolhas.length > 0 && (
+                  <div>
+                    <div className="text-xs font-medium text-faint">Escolhas do gestor</div>
+                    <ul className="mt-1 space-y-1">
+                      {verdict.escolhas.map((e, i) => (
+                        <li key={i} className="text-ink">
+                          <span className="font-medium">{e.titulo}</span>
+                          {e.por_que && <span className="text-dim"> — {e.por_que}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {verdict.ajustes && (
+                  <div>
+                    <div className="text-xs font-medium text-faint">Ajustes sugeridos</div>
+                    <p className="mt-1 whitespace-pre-wrap text-dim">{verdict.ajustes}</p>
+                  </div>
+                )}
+                {verdict.feedback_time && (
+                  <div>
+                    <div className="text-xs font-medium text-faint">Feedback pro time</div>
+                    <p className="mt-1 whitespace-pre-wrap text-dim">{verdict.feedback_time}</p>
+                    <button
+                      type="button"
+                      onClick={() => gerar(verdict.feedback_time)}
+                      disabled={loading}
+                      className="mt-3 rounded-md border border-line px-3 py-1.5 text-xs text-dim transition-colors hover:text-ink disabled:opacity-50"
+                    >
+                      {loading ? "time refazendo…" : "Refazer com o feedback do gestor"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
       )}

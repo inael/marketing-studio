@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
-import { getAiConfig } from "@/server/settings";
+import { getAiConfig, type AiConfig } from "@/server/settings";
 import { getBrandById, type Brand } from "@/server/brands";
 import { listSources } from "@/server/sources";
-import { listAnalysts } from "@/server/personas";
+import { listAnalysts, type Persona } from "@/server/personas";
 import { fetchRss, competitorTopPosts, type CompetitorPost, type RssItem } from "@/server/signals";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +40,51 @@ function extractJson(text: string): unknown {
   }
 }
 
+async function chatJson(cfg: AiConfig, model: string, sys: string, user: string): Promise<unknown> {
+  try {
+    const r = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
+        temperature: 0.85,
+        max_tokens: 900,
+      }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return extractJson(String(data?.choices?.[0]?.message?.content ?? ""));
+  } catch {
+    return null;
+  }
+}
+
+type Idea = { titulo?: string; angulo?: string; legenda?: string; formato?: string; analista?: string };
+
+async function callAnalyst(
+  cfg: AiConfig,
+  a: Persona,
+  brand: Brand,
+  signals: string,
+  feedback?: string
+): Promise<{ analista: string; noticia?: Idea; concorrente?: Idea } | null> {
+  const model = a.modelo || cfg.model;
+  const sys = `Você é ${a.nome}, analista de mídias sociais da ${brand.nome} (${brand.site_url}). Persona: ${
+    a.tracos || "equilibrado"
+  }. Skills: ${a.skills || "geral"}. ${a.instrucoes} Tom de voz da marca: ${
+    brand.tom_voz || "profissional e claro"
+  }. Com base nos SINAIS, proponha 1 ideia de post inspirada nas NOTÍCIAS e 1 inspirada nos CONCORRENTES, no SEU estilo. Regras: conecte ao que a marca faz; NUNCA copie a legenda do concorrente; legenda pronta em pt-BR, 1-3 frases, sem hashtags, sem travessão.${
+    feedback ? ` Feedback do gestor pra melhorar: ${feedback}` : ""
+  } Responda SOMENTE JSON: {"noticia":{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel"},"concorrente":{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel"}}.`;
+  const parsed = (await chatJson(cfg, model, sys, signals)) as { noticia?: Idea; concorrente?: Idea } | null;
+  if (!parsed) return null;
+  return { analista: a.nome, noticia: parsed.noticia, concorrente: parsed.concorrente };
+}
+
 export async function POST(req: NextRequest) {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
   if (!isAuthenticated) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -51,7 +96,7 @@ export async function POST(req: NextRequest) {
   const brand = body.brand_id ? await getBrandById(body.brand_id) : null;
   if (!brand) return NextResponse.json({ error: "marca inválida" }, { status: 400 });
 
-  const [sources, analysts] = await Promise.all([listSources(brand.id), listAnalysts()]);
+  const [sources, analystsRaw] = await Promise.all([listSources(brand.id), listAnalysts()]);
   const rssUrls = sources.filter((s) => s.kind === "rss").slice(0, 3);
   const comps = sources.filter((s) => s.kind === "competitor").slice(0, 5);
 
@@ -68,17 +113,7 @@ export async function POST(req: NextRequest) {
     warnings.push("sem conta IG conectada pra ler concorrentes");
   }
 
-  const team = analysts.length
-    ? analysts.map((a) => `- ${a.nome}: ${a.tracos || a.instrucoes}`).join("\n")
-    : "- Analista padrão: equilibrado";
-
-  const sys = `Você comanda um time de analistas de mídias sociais da ${brand.nome} (${brand.site_url}). O time:\n${team}\nTom de voz da marca: ${
-    brand.tom_voz || "profissional e claro"
-  }. Gere DUAS listas de ideias de post ORIGINAIS: exatamente 3 inspiradas nas NOTÍCIAS e 3 inspiradas nos CONCORRENTES. Atribua cada ideia ao analista cujo estilo mais combina (campo "analista" = nome exato). Regras: conecte ao que a marca faz; NUNCA copie a legenda do concorrente (só inspiração de tema/ângulo); legenda pronta em pt-BR, 1-3 frases, sem hashtags, sem travessão.${
-    body.feedback ? ` Feedback do gestor pra melhorar: ${body.feedback}` : ""
-  } Responda SOMENTE JSON: {"noticias":[{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","analista":"nome"}],"concorrentes":[{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","analista":"nome"}]}.`;
-
-  const user = [
+  const signals = [
     rssItems.length ? `NOTÍCIAS:\n${rssItems.map((i) => `- ${i.title}`).join("\n")}` : "NOTÍCIAS: (nenhuma; use conhecimento do setor)",
     compPosts.length
       ? `CONCORRENTES (o que engajou; inspiração de tema, não copiar):\n${compPosts
@@ -87,38 +122,29 @@ export async function POST(req: NextRequest) {
       : "CONCORRENTES: (sem dados; proponha com base no posicionamento da marca)",
   ].join("\n\n");
 
-  try {
-    const r = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({
-        model: cfg.model,
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: user },
-        ],
-        temperature: 0.85,
-        max_tokens: 1600,
-      }),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      return NextResponse.json({ error: data?.error?.message ?? `provedor retornou ${r.status}` }, { status: 502 });
-    }
-    const content = String(data?.choices?.[0]?.message?.content ?? "");
-    const parsed = extractJson(content) as { noticias?: unknown[]; concorrentes?: unknown[] } | null;
-    const noticias = Array.isArray(parsed?.noticias) ? parsed!.noticias : [];
-    const concorrentes = Array.isArray(parsed?.concorrentes) ? parsed!.concorrentes : [];
-    if (!noticias.length && !concorrentes.length) {
-      return NextResponse.json({ error: "não consegui montar as sugestões, tente de novo" }, { status: 502 });
-    }
-    return NextResponse.json({
-      noticias,
-      concorrentes,
-      analysts: analysts.map((a) => a.nome),
-      meta: { rss: rssItems.length, competitors: compPosts.length, warnings },
-    });
-  } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "falha ao sugerir" }, { status: 502 });
+  // Cada analista é um agente com seu próprio modelo/skills (chamados em paralelo)
+  const analysts =
+    analystsRaw.length > 0
+      ? analystsRaw
+      : ([{ id: "", nome: "Analista", papel: "analista", tracos: "", instrucoes: "", modelo: "", skills: "", ativo: true }] as Persona[]);
+
+  const results = (await Promise.all(analysts.map((a) => callAnalyst(cfg, a, brand, signals, body.feedback)))).filter(
+    Boolean
+  ) as { analista: string; noticia?: Idea; concorrente?: Idea }[];
+
+  const noticias = results.map((r) => (r.noticia?.legenda ? { ...r.noticia, analista: r.analista } : null)).filter(Boolean);
+  const concorrentes = results
+    .map((r) => (r.concorrente?.legenda ? { ...r.concorrente, analista: r.analista } : null))
+    .filter(Boolean);
+
+  if (!noticias.length && !concorrentes.length) {
+    return NextResponse.json({ error: "o time não conseguiu montar sugestões, tente de novo" }, { status: 502 });
   }
+
+  return NextResponse.json({
+    noticias,
+    concorrentes,
+    analysts: analysts.map((a) => ({ nome: a.nome, modelo: a.modelo || cfg.model })),
+    meta: { rss: rssItems.length, competitors: compPosts.length, warnings },
+  });
 }

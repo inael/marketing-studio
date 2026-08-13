@@ -6,6 +6,8 @@ export type Persona = {
   papel: "analista" | "gestor";
   tracos: string;
   instrucoes: string;
+  modelo: string;
+  skills: string;
   ativo: boolean;
 };
 
@@ -27,7 +29,9 @@ export async function getPersona(id: string): Promise<Persona | null> {
   return p ?? null;
 }
 
-export type PersonaPatch = Partial<Pick<Persona, "nome" | "tracos" | "instrucoes" | "ativo">>;
+export type PersonaPatch = Partial<
+  Pick<Persona, "nome" | "tracos" | "instrucoes" | "modelo" | "skills" | "ativo">
+>;
 
 export async function updatePersona(id: string, patch: PersonaPatch): Promise<void> {
   const keys = Object.keys(patch) as string[];

@@ -58,6 +58,33 @@ export default async function EditPersonaPage({
           />
         </div>
 
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className={labelCls} htmlFor="modelo">
+              Modelo de IA <span className="text-faint">(o &ldquo;cérebro&rdquo; desse agente)</span>
+            </label>
+            <input
+              id="modelo"
+              name="modelo"
+              defaultValue={p.modelo}
+              placeholder="gpt-4o, claude-sonnet-46, gemini-pro, deepseek-v3…"
+              className={`${inputCls} font-mono`}
+            />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="skills">
+              Skills <span className="text-faint">(especialidades)</span>
+            </label>
+            <input
+              id="skills"
+              name="skills"
+              defaultValue={p.skills}
+              placeholder="copywriting, pesquisa de tendências, conversão…"
+              className={inputCls}
+            />
+          </div>
+        </div>
+
         <label className="flex items-center gap-3 text-sm text-dim">
           <input
             type="checkbox"
