@@ -22,15 +22,18 @@ function hhmm(iso: string) {
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ym?: string }>;
+  searchParams: Promise<{ ym?: string; brand?: string }>;
 }) {
   const now = new Date();
-  const { ym: ymParam } = await searchParams;
+  const { ym: ymParam, brand: brandSlug } = await searchParams;
   const ym = /^\d{4}-\d{2}$/.test(ymParam ?? "") ? ymParam! : ymOf(now);
   const [y, m] = ym.split("-").map(Number);
 
-  const [posts, brands] = await Promise.all([listPosts(), listAllBrands()]);
+  const [allPosts, brands] = await Promise.all([listPosts(), listAllBrands()]);
   const byId = new Map(brands.map((b) => [b.id, b]));
+  const activeBrand = brandSlug ? brands.find((b) => b.slug === brandSlug) : undefined;
+  const posts = activeBrand ? allPosts.filter((p) => p.brand_id === activeBrand.id) : allPosts;
+  const brandQ = activeBrand ? `&brand=${activeBrand.slug}` : "";
 
   const byDay = new Map<number, Post[]>();
   for (const p of posts) {
@@ -61,19 +64,42 @@ export default async function CalendarioPage({
     <>
       <PageHeader
         title="Calendário"
-        subtitle="Posts agendados por marca"
+        subtitle={activeBrand ? `Agenda de ${activeBrand.nome}` : "Agenda de todos os produtos"}
         action={
           <div className="flex items-center gap-2">
-            <Link href={`/calendario?ym=${addMonth(ym, -1)}`} className={navBtn} aria-label="Mês anterior">
+            <Link href={`/calendario?ym=${addMonth(ym, -1)}${brandQ}`} className={navBtn} aria-label="Mês anterior">
               ‹
             </Link>
             <span className="min-w-40 text-center text-sm capitalize text-ink">{monthLabel}</span>
-            <Link href={`/calendario?ym=${addMonth(ym, 1)}`} className={navBtn} aria-label="Próximo mês">
+            <Link href={`/calendario?ym=${addMonth(ym, 1)}${brandQ}`} className={navBtn} aria-label="Próximo mês">
               ›
             </Link>
           </div>
         }
       />
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Link
+          href={`/calendario?ym=${ym}`}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
+            !activeBrand ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
+          }`}
+        >
+          Todos os produtos
+        </Link>
+        {brands.map((b) => (
+          <Link
+            key={b.id}
+            href={`/calendario?ym=${ym}&brand=${b.slug}`}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
+              activeBrand?.id === b.id ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full" style={{ background: b.cor_principal }} />
+            {b.nome}
+          </Link>
+        ))}
+      </div>
 
       <div className="overflow-hidden rounded-lg border border-line">
         <div className="grid grid-cols-7 border-b border-line bg-panel">
