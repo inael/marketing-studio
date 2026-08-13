@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   const sys = `Você é estrategista de conteúdo da ${brand.nome} (${brand.site_url}). A partir dos SINAIS (notícias recentes e o que mais engajou nos concorrentes), proponha ${n} ideias de post ORIGINAIS no tom de voz da marca: ${
     brand.tom_voz || "profissional e claro"
-  }. Regras: NUNCA copie a legenda do concorrente (use só como inspiração de tema/ângulo); traga ideias úteis e específicas; legenda pronta em pt-BR, 1-3 frases, sem hashtags, sem travessão. Responda SOMENTE JSON: {"suggestions":[{"titulo":"curto","angulo":"por que postar isso agora","legenda":"legenda pronta","formato":"image|carousel|reel","fonte":"de onde veio a ideia"}]}.`;
+  }. Regras: conecte cada ideia ao que a MARCA faz e ao seu público (pode ignorar notícia de consumo genérica que não sirva); NUNCA copie a legenda do concorrente (use só como inspiração de tema/ângulo); traga ideias úteis e específicas; legenda pronta em pt-BR, 1-3 frases, sem hashtags, sem travessão. Responda SOMENTE JSON: {"suggestions":[{"titulo":"curto","angulo":"por que postar agora","legenda":"legenda pronta","formato":"image|carousel|reel","fonte":"a notícia ou o tema do concorrente que inspirou (não o nome da marca)"}]}.`;
 
   const user = [
     rssItems.length ? `NOTÍCIAS:\n${rssItems.map((i) => `- ${i.title}`).join("\n")}` : "",
