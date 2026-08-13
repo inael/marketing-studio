@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBrand } from "@/server/brands";
 import { listTimeslots } from "@/server/timeslots";
-import { saveBrand, addSlot, removeSlot } from "../actions";
+import { listSources } from "@/server/sources";
+import { saveBrand, addSlot, removeSlot, addSourceAction, removeSourceAction } from "../actions";
 import { PageHeader, btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 import { Connections } from "@/components/connections";
 
@@ -22,6 +23,9 @@ export default async function EditBrandPage({
   if (!b) notFound();
 
   const slots = await listTimeslots(b.id);
+  const sources = await listSources(b.id);
+  const rss = sources.filter((s) => s.kind === "rss");
+  const competitors = sources.filter((s) => s.kind === "competitor");
   const igEnv = Boolean(process.env[`META_${b.slug.toUpperCase()}_IG_USER_ID`]);
   const igConnected = Boolean(b.ig_user_id) || igEnv;
   const linkedinConnected = Boolean(b.linkedin_org_id);
@@ -230,6 +234,66 @@ export default async function EditBrandPage({
             igConnected={igConnected}
             linkedinConnected={linkedinConnected}
           />
+        </div>
+      </section>
+
+      <section className="mt-10 max-w-2xl border-t border-line pt-8">
+        <h2 className="text-sm font-semibold text-ink">Fontes de conteúdo</h2>
+        <p className="mt-1 text-xs text-dim">
+          Feeds RSS de notícias e concorrentes no Instagram. A IA usa como inspiração (temas e
+          ângulos que engajam) pra sugerir posts originais no tom da marca, nunca copiar.
+        </p>
+
+        <div className="mt-5">
+          <div className="text-xs font-medium text-faint">Feeds RSS (notícias)</div>
+          <div className="mt-2 space-y-1.5">
+            {rss.length === 0 && <span className="text-sm text-faint">Nenhum feed ainda.</span>}
+            {rss.map((s) => (
+              <form
+                key={s.id}
+                action={removeSourceAction.bind(null, s.id, b.slug)}
+                className="flex items-center gap-2"
+              >
+                <span className="min-w-0 flex-1 truncate rounded-md border border-line bg-panel2 px-3 py-1.5 text-xs text-dim">
+                  {s.value}
+                </span>
+                <button className="rounded-md border border-line px-2.5 py-1.5 text-xs text-faint transition-colors hover:border-bad/50 hover:text-bad">
+                  remover
+                </button>
+              </form>
+            ))}
+          </div>
+          <form action={addSourceAction.bind(null, b.id, b.slug)} className="mt-2 flex gap-2">
+            <input type="hidden" name="kind" value="rss" />
+            <input name="value" placeholder="https://site.com/feed" className={inputCls} required />
+            <button type="submit" className={btnGhost}>
+              Adicionar
+            </button>
+          </form>
+        </div>
+
+        <div className="mt-6">
+          <div className="text-xs font-medium text-faint">Concorrentes (Instagram)</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {competitors.length === 0 && (
+              <span className="text-sm text-faint">Nenhum concorrente ainda.</span>
+            )}
+            {competitors.map((s) => (
+              <form key={s.id} action={removeSourceAction.bind(null, s.id, b.slug)}>
+                <button className="group inline-flex items-center gap-2 rounded-full border border-line bg-panel2 px-3 py-1.5 text-xs text-dim transition-colors hover:border-bad/50 hover:text-bad">
+                  <span className="font-mono">@{s.value}</span>
+                  <span aria-hidden>×</span>
+                </button>
+              </form>
+            ))}
+          </div>
+          <form action={addSourceAction.bind(null, b.id, b.slug)} className="mt-2 flex gap-2">
+            <input type="hidden" name="kind" value="competitor" />
+            <input name="value" placeholder="@perfil_publico" className={inputCls} required />
+            <button type="submit" className={btnGhost}>
+              Adicionar
+            </button>
+          </form>
         </div>
       </section>
     </>

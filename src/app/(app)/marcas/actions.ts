@@ -6,6 +6,7 @@ import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { updateBrand, type BrandPatch } from "@/server/brands";
 import { addTimeslot, removeTimeslot } from "@/server/timeslots";
+import { addSource, removeSource, type SourceKind } from "@/server/sources";
 
 async function requireAuth() {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
@@ -53,6 +54,25 @@ export async function addSlot(brandId: string, slug: string, formData: FormData)
 export async function removeSlot(id: string, slug: string) {
   await requireAuth();
   await removeTimeslot(id);
+  revalidatePath(`/marcas/${slug}`);
+  redirect(`/marcas/${slug}`);
+}
+
+export async function addSourceAction(brandId: string, slug: string, formData: FormData) {
+  await requireAuth();
+  const kind = String(formData.get("kind") ?? "") as SourceKind;
+  let value = str(formData, "value");
+  if (kind === "competitor") value = value.replace(/^@+/, "").replace(/\s+/g, "");
+  if ((kind === "rss" || kind === "competitor") && value) {
+    await addSource(brandId, kind, value);
+  }
+  revalidatePath(`/marcas/${slug}`);
+  redirect(`/marcas/${slug}`);
+}
+
+export async function removeSourceAction(id: string, slug: string) {
+  await requireAuth();
+  await removeSource(id);
   revalidatePath(`/marcas/${slug}`);
   redirect(`/marcas/${slug}`);
 }

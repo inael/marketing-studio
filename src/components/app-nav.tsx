@@ -33,6 +33,20 @@ const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: "/sugestoes",
+    label: "Sugestões",
+    icon: (
+      <>
+        <path d="M9.5 18h5M10.5 21h3" strokeWidth="1.6" strokeLinecap="round" />
+        <path
+          d="M12 3a6 6 0 0 0-3.8 10.6c.6.5 1.3 1.2 1.3 2.4h5c0-1.2.7-1.9 1.3-2.4A6 6 0 0 0 12 3z"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </>
+    ),
+  },
+  {
     href: "/calendario",
     label: "Calendário",
     icon: (
