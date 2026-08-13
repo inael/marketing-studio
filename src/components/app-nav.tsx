@@ -47,6 +47,17 @@ const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: "/time",
+    label: "Time",
+    icon: (
+      <>
+        <circle cx="9" cy="8" r="3" strokeWidth="1.6" />
+        <path d="M3.5 19c0-3 2.5-4.6 5.5-4.6s5.5 1.6 5.5 4.6" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M16 5.6a3 3 0 0 1 0 5.4M17 14.6c2.2.5 3.5 2 3.5 4.4" strokeWidth="1.6" strokeLinecap="round" />
+      </>
+    ),
+  },
+  {
     href: "/calendario",
     label: "Calendário",
     icon: (
