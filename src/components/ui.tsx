@@ -61,7 +61,7 @@ export function Empty({
 
 // classes reaproveitadas (mantém a chrome consistente)
 export const btnPrimary =
-  "inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas transition-colors hover:bg-white disabled:opacity-50";
+  "inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas transition-opacity hover:opacity-90 disabled:opacity-50";
 export const btnGhost =
   "inline-flex items-center gap-2 rounded-md border border-line px-4 py-2 text-sm text-dim transition-colors hover:border-line2 hover:text-ink";
 export const inputCls =

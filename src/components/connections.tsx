@@ -90,7 +90,7 @@ export function Connections({ brandId, brandSlug, igConnected, linkedinConnected
                   <div className="flex items-center gap-2">
                     <a
                       href={`/api/connections/${n.key}/start?brand=${brandSlug}`}
-                      className="rounded-md bg-ink px-3 py-1 text-xs font-medium text-canvas transition-colors hover:bg-white"
+                      className="rounded-md bg-ink px-3 py-1 text-xs font-medium text-canvas transition-opacity hover:opacity-90"
                     >
                       Conectar
                     </a>
@@ -101,7 +101,7 @@ export function Connections({ brandId, brandSlug, igConnected, linkedinConnected
                 ) : (
                   <a
                     href={anchor(n.key)}
-                    className="rounded-md bg-ink px-3 py-1 text-xs font-medium text-canvas transition-colors hover:bg-white"
+                    className="rounded-md bg-ink px-3 py-1 text-xs font-medium text-canvas transition-opacity hover:opacity-90"
                   >
                     Conectar
                   </a>

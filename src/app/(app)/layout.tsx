@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { AppNav } from "@/components/app-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { initials } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               {who}
             </span>
           </div>
+          <ThemeToggle />
           <a
             href="/logto/sign-out"
             className="mt-1 block rounded-md px-3 py-2 text-xs text-faint transition-colors hover:bg-panel2 hover:text-dim"
