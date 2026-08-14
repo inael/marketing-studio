@@ -3,6 +3,7 @@ import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { getAiConfig } from "@/server/settings";
 import { getBrandById } from "@/server/brands";
+import { logUsage, usageFrom } from "@/server/usage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
     if (!r.ok) return NextResponse.json({ error: data?.error?.message ?? `provedor ${r.status}` }, { status: 502 });
     const insight = String(data?.choices?.[0]?.message?.content ?? "").trim();
     if (!insight) return NextResponse.json({ error: "sem resposta" }, { status: 502 });
+    await logUsage({ persona: null, tipo: "insight", model: cfg.model, brand_id: brand.id, ...usageFrom(data) });
     return NextResponse.json({ insight });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "falha na IA" }, { status: 502 });

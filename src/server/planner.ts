@@ -3,6 +3,7 @@ import { getBrandById, type Brand } from "./brands";
 import { listSources } from "./sources";
 import { listAnalysts, type Persona } from "./personas";
 import { fetchRss, competitorTopPosts, type CompetitorPost, type RssItem } from "./signals";
+import { logUsage, usageFrom } from "./usage";
 
 // Núcleo de geração de sugestões, compartilhado entre a rota /api/ai/suggest
 // (uso manual, por fonte) e os crons de automação (uso hands-off, ambas).
@@ -68,7 +69,10 @@ function extractJson(text: string): unknown {
   }
 }
 
-async function chatJson(cfg: AiConfig, model: string, sys: string, user: string): Promise<unknown> {
+type ChatOut = { parsed: unknown; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } };
+const ZERO = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+
+async function chatJson(cfg: AiConfig, model: string, sys: string, user: string): Promise<ChatOut> {
   try {
     const r = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
@@ -83,11 +87,11 @@ async function chatJson(cfg: AiConfig, model: string, sys: string, user: string)
         max_tokens: 900,
       }),
     });
-    if (!r.ok) return null;
+    if (!r.ok) return { parsed: null, usage: ZERO };
     const data = await r.json();
-    return extractJson(String(data?.choices?.[0]?.message?.content ?? ""));
+    return { parsed: extractJson(String(data?.choices?.[0]?.message?.content ?? "")), usage: usageFrom(data) };
   } catch {
-    return null;
+    return { parsed: null, usage: ZERO };
   }
 }
 
@@ -116,9 +120,11 @@ async function callAnalyst(
   }. Com base nos SINAIS (itens numerados [n]), proponha 1 POST COMPLETO ${alvo}, no SEU estilo. Regras: conecte ao que a marca faz; legenda pronta em pt-BR, 1-3 frases, sem travessão; inclua de 3 a 6 HASHTAGS relevantes (sem #); em "fonte_idx" devolva o número [n] do item usado; em "imagem_prompt" escreva EM PORTUGUÊS um prompt curto e realista pra a imagem (foto editorial, sem texto, sem cara de IA, nada de roxo/neon).${
     feedback ? ` Feedback do gestor pra melhorar: ${feedback}` : ""
   } Responda SOMENTE JSON: {"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","fonte_idx":0,"imagem_prompt":"","hashtags":["",""]}.`;
-  const parsed = (await chatJson(cfg, model, sys, signals)) as RawIdea | null;
-  if (!parsed?.legenda) return null;
-  return { analista: a.nome, idea: parsed };
+  const { parsed, usage } = await chatJson(cfg, model, sys, signals);
+  await logUsage({ persona: a.nome, tipo: "sugestao", model, brand_id: brand.id, ...usage });
+  const idea = parsed as RawIdea | null;
+  if (!idea?.legenda) return null;
+  return { analista: a.nome, idea };
 }
 
 const idxOf = (n: unknown, max: number) => (typeof n === "number" && n >= 0 && n < max ? n : null);

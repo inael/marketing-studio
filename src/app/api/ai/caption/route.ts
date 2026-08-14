@@ -3,6 +3,7 @@ import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { getAiConfig } from "@/server/settings";
 import { getBrandById } from "@/server/brands";
+import { logUsage, usageFrom } from "@/server/usage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
     if (!caption) {
       return NextResponse.json({ error: "provedor não retornou texto" }, { status: 502 });
     }
+    await logUsage({ persona: null, tipo: "legenda", model: cfg.model, brand_id: brand.id, ...usageFrom(data) });
     return NextResponse.json({ caption });
   } catch (e) {
     return NextResponse.json(

@@ -4,6 +4,7 @@ import { logtoConfig } from "@/lib/logto";
 import { getAiConfig } from "@/server/settings";
 import { getBrandById } from "@/server/brands";
 import { getManager } from "@/server/personas";
+import { logUsage, usageFrom } from "@/server/usage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -81,6 +82,14 @@ export async function POST(req: NextRequest) {
       feedback_time?: string;
     } | null;
     if (!parsed) return NextResponse.json({ error: "não consegui ler a resposta do gestor" }, { status: 502 });
+
+    await logUsage({
+      persona: manager?.nome ?? "Gestor",
+      tipo: "gestao",
+      model: manager?.modelo || cfg.model,
+      brand_id: brand.id,
+      ...usageFrom(data),
+    });
 
     return NextResponse.json({
       gestor: manager?.nome ?? "Gestor",

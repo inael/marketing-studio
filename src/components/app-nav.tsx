@@ -80,6 +80,16 @@ const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: "/consumo",
+    label: "Consumo",
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="8" strokeWidth="1.6" />
+        <path d="M12 8v4l2.5 2.5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  {
     href: "/calendario",
     label: "Calendário",
     icon: (

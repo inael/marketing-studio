@@ -46,6 +46,14 @@ try {
   await sql`insert into media_assets (brand_id, url, tipo, origem)
     values (${post.brand_id}, ${publicUrl}, ${isVideo ? "video" : "image"}, ${origem})`;
 
+  // registra o consumo de imagem (FLUX.2 Pro 1K ~ 1 credito) no relatorio de consumo
+  if (!isVideo) {
+    try {
+      await sql`insert into usage_events (persona, tipo, model, brand_id, credits)
+        values (null, 'imagem', ${origem}, ${post.brand_id}, 1)`;
+    } catch {}
+  }
+
   console.log("OK anexado ->", publicUrl, "| post:", postId, "| media agora:", media.length);
 } finally {
   await sql.end();
