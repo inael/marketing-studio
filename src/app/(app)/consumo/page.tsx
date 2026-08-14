@@ -44,9 +44,10 @@ export default async function ConsumoPage({ searchParams }: { searchParams: Prom
       ) : (
         <div className="space-y-8">
           {/* totais */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {[
               { l: "Tokens totais", v: nf(rep.totals.tokens), t: "text-ink" },
+              { l: "Custo (US$)", v: `$${rep.totals.cost.toFixed(4)}`, t: "text-ok" },
               { l: "Prompt", v: nf(rep.totals.prompt), t: "text-dim" },
               { l: "Resposta", v: nf(rep.totals.completion), t: "text-dim" },
               { l: "Imagens", v: nf(rep.totals.imagens), t: "text-info" },
@@ -67,6 +68,7 @@ export default async function ConsumoPage({ searchParams }: { searchParams: Prom
                 <tr className="border-b border-line text-left text-xs text-faint">
                   <th className="py-2 pr-3 font-medium">Funcionário</th>
                   <th className="py-2 px-3 font-medium">Tokens</th>
+                  <th className="py-2 px-3 font-medium">US$</th>
                   <th className="py-2 px-3 font-medium">Sugestões</th>
                   <th className="py-2 px-3 font-medium">Legendas</th>
                   <th className="py-2 px-3 font-medium">Gestão</th>
@@ -79,6 +81,7 @@ export default async function ConsumoPage({ searchParams }: { searchParams: Prom
                   <tr key={p.persona} className="border-b border-line/60">
                     <td className="py-2 pr-3 text-ink">{p.persona}</td>
                     <td className="px-3 font-medium text-ink">{nf(p.tokens)}</td>
+                    <td className="px-3 text-ok">${p.cost.toFixed(4)}</td>
                     <td className="px-3 text-dim">{p.sugestoes}</td>
                     <td className="px-3 text-dim">{p.legendas}</td>
                     <td className="px-3 text-dim">{p.gestao}</td>
