@@ -21,7 +21,7 @@ Status vai sendo marcado aqui conforme entrega.
 | 04 Tema light/dark | ✅ feito |
 | 05 Dashboard | ✅ feito |
 | 02 Estúdio de legenda | ✅ feito (adaptar-por-rede pendente) |
-| 06 Sugestões v2 (abas + 2 colunas + editar) + Time (foto/organograma) | ⬜ |
+| 06 Sugestões v2 (abas + 2 colunas + editar + hashtags) | ✅ feito (Twitter/YouTube + gerar-imagem-por-card + Time foto/organograma pendentes) |
 | 08 Navegação rail + submenu | ⬜ |
 | 07 Relatório de consumo (tokens/funcionário) | ⬜ |
 | 01 Relatórios de concorrentes | ⬜ |
