@@ -10,6 +10,7 @@ export type Brand = {
   tom_voz: string;
   ig_user_id: string | null;
   ig_token: string | null;
+  ig_picture: string | null;
   linkedin_org_id: string | null;
   linkedin_token: string | null;
   site_url: string;
@@ -46,6 +47,7 @@ export type BrandPatch = Partial<
     | "tom_voz"
     | "ig_user_id"
     | "ig_token"
+    | "ig_picture"
     | "linkedin_org_id"
     | "linkedin_token"
     | "site_url"

@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
-import { updateBrand, type BrandPatch } from "@/server/brands";
+import { updateBrand, listAllBrands, type BrandPatch } from "@/server/brands";
 import { addTimeslot, removeTimeslot } from "@/server/timeslots";
 import { addSource, removeSource, type SourceKind } from "@/server/sources";
 import { getOauthSession, deleteOauthSession } from "@/server/oauth";
+import { resolveIg } from "@/server/planner";
 
 async function requireAuth() {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
@@ -78,6 +79,32 @@ export async function removeSourceAction(id: string, slug: string) {
   redirect(`/marcas/${slug}`);
 }
 
+const GRAPH = "https://graph.facebook.com/v21.0";
+
+/** Busca a foto de perfil (e username) da conta IG de cada marca e salva.
+ *  Roda no servidor de produção, onde os tokens de env estão disponíveis. */
+export async function refreshBrandPhotos() {
+  await requireAuth();
+  const brands = await listAllBrands();
+  await Promise.all(
+    brands.map(async (b) => {
+      const acc = resolveIg(b);
+      if (!acc) return;
+      try {
+        const r = await fetch(
+          `${GRAPH}/${acc.igUserId}?fields=profile_picture_url,username&access_token=${acc.token}`
+        );
+        const d = await r.json();
+        if (d?.profile_picture_url) await updateBrand(b.id, { ig_picture: d.profile_picture_url });
+      } catch {
+        /* ignora marca que falhar; as outras seguem */
+      }
+    })
+  );
+  revalidatePath("/marcas");
+  redirect("/marcas");
+}
+
 export async function finalizeInstagram(
   brandId: string,
   slug: string,
@@ -87,10 +114,14 @@ export async function finalizeInstagram(
   await requireAuth();
   const session = await getOauthSession(sessionId);
   const acc = session?.accounts?.find((a: { igId: string }) => a.igId === igId) as
-    | { igId: string; pageToken: string }
+    | { igId: string; pageToken: string; picture?: string | null }
     | undefined;
   if (acc) {
-    await updateBrand(brandId, { ig_user_id: acc.igId, ig_token: acc.pageToken });
+    await updateBrand(brandId, {
+      ig_user_id: acc.igId,
+      ig_token: acc.pageToken,
+      ig_picture: acc.picture ?? null,
+    });
     await deleteOauthSession(sessionId);
   }
   revalidatePath(`/marcas/${slug}`);

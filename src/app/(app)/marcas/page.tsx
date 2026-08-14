@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { listAllBrands } from "@/server/brands";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, btnGhost } from "@/components/ui";
+import { readableOn } from "@/lib/ui";
+import { refreshBrandPhotos } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +11,17 @@ export default async function MarcasPage() {
 
   return (
     <>
-      <PageHeader title="Marcas" subtitle={`${brands.length} produtos no estúdio`} />
+      <PageHeader
+        title="Marcas"
+        subtitle={`${brands.length} produtos no estúdio`}
+        action={
+          <form action={refreshBrandPhotos}>
+            <button className={btnGhost} title="Puxa a foto de perfil das contas Instagram conectadas">
+              Atualizar fotos
+            </button>
+          </form>
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {brands.map((b) => {
@@ -26,11 +38,31 @@ export default async function MarcasPage() {
                 className="absolute inset-y-0 left-0 w-1"
                 style={{ background: b.cor_principal }}
               />
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-ink">{b.nome}</span>
-                {!b.ativo && <span className="text-[11px] text-faint">inativa</span>}
+              <div className="flex items-center gap-3">
+                {b.ig_picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={b.ig_picture}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-semibold"
+                    style={{ background: b.cor_principal, color: readableOn(b.cor_principal) }}
+                  >
+                    {b.nome[0]?.toUpperCase() ?? "?"}
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium text-ink">{b.nome}</span>
+                    {!b.ativo && <span className="shrink-0 text-[11px] text-faint">inativa</span>}
+                  </div>
+                  <div className="font-mono text-xs text-faint">@{b.slug}</div>
+                </div>
               </div>
-              <div className="mt-0.5 font-mono text-xs text-faint">@{b.slug}</div>
               <p className="mt-3 line-clamp-2 min-h-8 text-xs leading-relaxed text-dim">
                 {b.tom_voz || "sem tom de voz definido"}
               </p>
