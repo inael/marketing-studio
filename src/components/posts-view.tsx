@@ -89,6 +89,7 @@ export function PostsView({
   const [analistaSel, setAnalistaSel] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
   const [showRank, setShowRank] = useState(false);
+  const [sel, setSel] = useState<Set<string>>(new Set());
 
   const byId = useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands]);
   const analistas = useMemo(
@@ -113,6 +114,31 @@ export function PostsView({
   const act = (fn: (id: string) => Promise<void>, id: string) =>
     startTransition(async () => {
       await fn(id);
+      router.refresh();
+    });
+
+  const toggleSel = (id: string) =>
+    setSel((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const allSel = filtered.length > 0 && filtered.every((p) => sel.has(p.id));
+  const toggleAll = () => setSel(allSel ? new Set() : new Set(filtered.map((p) => p.id)));
+  const approveSelected = () =>
+    startTransition(async () => {
+      for (const id of sel) {
+        const p = posts.find((x) => x.id === id);
+        if (p?.status === "draft") await approvePost(id);
+      }
+      setSel(new Set());
+      router.refresh();
+    });
+  const deleteSelected = () =>
+    startTransition(async () => {
+      for (const id of sel) await removePost(id);
+      setSel(new Set());
       router.refresh();
     });
 
@@ -192,10 +218,41 @@ export function PostsView({
         </div>
       )}
 
-      <p className="mb-3 text-xs text-faint">
-        {filtered.length} {filtered.length === 1 ? "post" : "posts"}
-        {pending && " · atualizando…"}
-      </p>
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+        <label className="flex cursor-pointer items-center gap-1.5 text-dim">
+          <input type="checkbox" checked={allSel} onChange={toggleAll} className="accent-ink" />
+          selecionar todos
+        </label>
+        <span className="text-faint">
+          {filtered.length} {filtered.length === 1 ? "post" : "posts"}
+          {pending && " · atualizando…"}
+        </span>
+        {sel.size > 0 && (
+          <>
+            <span className="text-line2">·</span>
+            <span className="text-ink">{sel.size} selecionado(s)</span>
+            <button
+              type="button"
+              onClick={approveSelected}
+              disabled={pending}
+              className="rounded-md border border-line px-2.5 py-1 text-dim transition-colors hover:border-ok/50 hover:text-ok disabled:opacity-50"
+            >
+              Aprovar
+            </button>
+            <button
+              type="button"
+              onClick={deleteSelected}
+              disabled={pending}
+              className="rounded-md border border-line px-2.5 py-1 text-faint transition-colors hover:border-bad/50 hover:text-bad disabled:opacity-50"
+            >
+              Excluir
+            </button>
+            <button type="button" onClick={() => setSel(new Set())} className="text-faint hover:text-dim">
+              limpar
+            </button>
+          </>
+        )}
+      </div>
 
       {filtered.length === 0 ? (
         <p className="rounded-lg border border-dashed border-line bg-panel/30 px-4 py-10 text-center text-sm text-faint">
@@ -207,30 +264,66 @@ export function PostsView({
             const b = byId.get(p.brand_id);
             const st = STATUS[p.status as StatusKey];
             return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setOpenId(p.id)}
-                title={p.legenda}
-                className="block text-left transition-transform hover:-translate-y-0.5"
-              >
-                <InstagramPreview
-                  compact
-                  username={b?.slug ?? "?"}
-                  cor={b?.cor_principal ?? "#000"}
-                  picture={b?.avatar}
-                  media={p.media}
-                  legenda={p.legenda}
-                  hashtags={p.hashtags}
-                  tipo={p.tipo}
-                  badge={
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-1.5 py-0.5 text-[10px] text-dim">
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: st?.dot ?? "#888" }} />
-                      {st?.label ?? p.status}
-                    </span>
-                  }
-                />
-              </button>
+              <div key={p.id} className="flex flex-col">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setOpenId(p.id)}
+                  title={p.legenda}
+                  className="cursor-pointer transition-transform hover:-translate-y-0.5"
+                >
+                  <InstagramPreview
+                    compact
+                    username={b?.slug ?? "?"}
+                    cor={b?.cor_principal ?? "#000"}
+                    picture={b?.avatar}
+                    media={p.media}
+                    legenda={p.legenda}
+                    hashtags={p.hashtags}
+                    tipo={p.tipo}
+                    badge={
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-1.5 py-0.5 text-[10px] text-dim">
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: st?.dot ?? "#888" }} />
+                        {st?.label ?? p.status}
+                      </span>
+                    }
+                  />
+                </div>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={sel.has(p.id)}
+                    onChange={() => toggleSel(p.id)}
+                    className="accent-ink"
+                    aria-label="Selecionar"
+                  />
+                  {p.status === "draft" && (
+                    <button
+                      onClick={() => act(approvePost, p.id)}
+                      disabled={pending}
+                      className="rounded-md border border-line px-2 py-0.5 text-[11px] text-dim transition-colors hover:border-ok/50 hover:text-ok disabled:opacity-50"
+                    >
+                      Aprovar
+                    </button>
+                  )}
+                  {(p.status === "approved" || p.status === "scheduled") && (
+                    <button
+                      onClick={() => act(publishPostAction, p.id)}
+                      disabled={pending}
+                      className="rounded-md border border-line px-2 py-0.5 text-[11px] text-dim transition-colors hover:border-info/50 hover:text-info disabled:opacity-50"
+                    >
+                      Publicar
+                    </button>
+                  )}
+                  <button
+                    onClick={() => act(removePost, p.id)}
+                    disabled={pending}
+                    className="ml-auto rounded-md border border-line px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-bad/50 hover:text-bad disabled:opacity-50"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -244,6 +337,31 @@ export function PostsView({
                 className="relative flex items-center gap-4 overflow-hidden rounded-lg border border-line bg-panel py-3 pl-5 pr-4"
               >
                 <span className="absolute inset-y-0 left-0 w-1" style={{ background: b?.cor_principal ?? "#3a3a40" }} />
+                <input
+                  type="checkbox"
+                  checked={sel.has(p.id)}
+                  onChange={() => toggleSel(p.id)}
+                  className="shrink-0 accent-ink"
+                  aria-label="Selecionar"
+                />
+                {b?.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={b.avatar}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    title={b?.nome}
+                    className="h-8 w-8 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span
+                    title={b?.nome}
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white"
+                    style={{ background: b?.cor_principal ?? "#888" }}
+                  >
+                    {(b?.slug[0] ?? "?").toUpperCase()}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => setOpenId(p.id)}
