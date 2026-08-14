@@ -231,6 +231,7 @@ export default async function EditBrandPage({
         <div className="mt-5">
           <Connections
             brandId={b.id}
+            brandSlug={b.slug}
             igConnected={igConnected}
             linkedinConnected={linkedinConnected}
           />

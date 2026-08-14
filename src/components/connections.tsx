@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type Props = { brandId: string; igConnected: boolean; linkedinConnected: boolean };
+type Props = { brandId: string; brandSlug: string; igConnected: boolean; linkedinConnected: boolean };
 
 const NETWORKS: { key: string; label: string; color: string; soon?: boolean }[] = [
   { key: "instagram", label: "Instagram", color: "#E1306C" },
@@ -17,7 +17,7 @@ const NETWORKS: { key: string; label: string; color: string; soon?: boolean }[] 
 
 type IgResult = { username?: string; picture?: string; error?: string };
 
-export function Connections({ brandId, igConnected, linkedinConnected }: Props) {
+export function Connections({ brandId, brandSlug, igConnected, linkedinConnected }: Props) {
   const [ig, setIg] = useState<IgResult | null>(null);
   const [verifying, setVerifying] = useState(false);
 
@@ -86,6 +86,18 @@ export function Connections({ brandId, igConnected, linkedinConnected }: Props) 
                   ) : (
                     <span className="text-xs text-faint">pronto para publicar</span>
                   )
+                ) : n.key === "instagram" ? (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/api/connections/instagram/start?brand=${brandSlug}`}
+                      className="rounded-md bg-ink px-3 py-1 text-xs font-medium text-canvas transition-colors hover:bg-white"
+                    >
+                      Conectar
+                    </a>
+                    <a href="#ig-fields" className="text-[11px] text-faint hover:text-dim">
+                      ou colar token
+                    </a>
+                  </div>
                 ) : (
                   <a
                     href={anchor(n.key)}

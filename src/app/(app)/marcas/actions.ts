@@ -7,6 +7,7 @@ import { logtoConfig } from "@/lib/logto";
 import { updateBrand, type BrandPatch } from "@/server/brands";
 import { addTimeslot, removeTimeslot } from "@/server/timeslots";
 import { addSource, removeSource, type SourceKind } from "@/server/sources";
+import { getOauthSession, deleteOauthSession } from "@/server/oauth";
 
 async function requireAuth() {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
@@ -73,6 +74,25 @@ export async function addSourceAction(brandId: string, slug: string, formData: F
 export async function removeSourceAction(id: string, slug: string) {
   await requireAuth();
   await removeSource(id);
+  revalidatePath(`/marcas/${slug}`);
+  redirect(`/marcas/${slug}`);
+}
+
+export async function finalizeInstagram(
+  brandId: string,
+  slug: string,
+  sessionId: string,
+  igId: string
+) {
+  await requireAuth();
+  const session = await getOauthSession(sessionId);
+  const acc = session?.accounts?.find((a: { igId: string }) => a.igId === igId) as
+    | { igId: string; pageToken: string }
+    | undefined;
+  if (acc) {
+    await updateBrand(brandId, { ig_user_id: acc.igId, ig_token: acc.pageToken });
+    await deleteOauthSession(sessionId);
+  }
   revalidatePath(`/marcas/${slug}`);
   redirect(`/marcas/${slug}`);
 }
