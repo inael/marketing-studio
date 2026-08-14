@@ -42,6 +42,7 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const [aiBusy, setAiBusy] = useState(false);
   const [imgBusy, setImgBusy] = useState(false);
   const [imageModel, setImageModel] = useState(IMAGE_MODELS[0].id);
+  const [imgPrompt, setImgPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const brand = brands.find((b) => b.id === brandId) ?? brands[0];
@@ -116,8 +117,8 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
 
   async function genImage() {
     if (!brand) return setError("Selecione uma marca.");
-    const p = window.prompt("Descreva a imagem que a IA deve gerar:", legenda || "");
-    if (!p) return;
+    const p = imgPrompt.trim();
+    if (!p) return setError("Descreva a imagem no campo antes de gerar.");
     setError(null);
     setImgBusy(true);
     try {
@@ -212,15 +213,6 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             >
               {uploading ? "enviando…" : "+ imagem"}
             </button>
-            <button
-              type="button"
-              onClick={genImage}
-              disabled={imgBusy}
-              title="Gerar imagem com IA (Higgsfield)"
-              className="grid h-20 w-20 place-items-center rounded-md border border-dashed border-line text-center text-[11px] leading-tight text-faint transition-colors hover:border-line2 hover:text-dim disabled:opacity-50"
-            >
-              {imgBusy ? "gerando…" : "✦ gerar"}
-            </button>
           </div>
           <input
             ref={fileRef}
@@ -230,19 +222,33 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             className="hidden"
             onChange={(e) => onFiles(e.target.files)}
           />
-          <div className="mt-2 flex items-center gap-2 text-xs text-faint">
-            <span>Modelo da IA de imagem:</span>
-            <select
-              value={imageModel}
-              onChange={(e) => setImageModel(e.target.value)}
-              className="rounded border border-line bg-panel2 px-2 py-1 text-xs text-dim"
-            >
-              {IMAGE_MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+          <div className="mt-3 rounded-md border border-line bg-panel/50 p-3">
+            <div className="mb-1.5 text-xs font-medium text-dim">Ou gerar a imagem com IA</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={imgPrompt}
+                onChange={(e) => setImgPrompt(e.target.value)}
+                placeholder="Descreva a imagem (ex: mesa de escritório minimalista, luz natural, sem texto)"
+                className={`${inputCls} min-w-56 flex-1`}
+              />
+              <button type="button" onClick={genImage} disabled={imgBusy} className={btnGhost}>
+                {imgBusy ? "gerando…" : "Gerar"}
+              </button>
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-faint">
+              <span>Modelo:</span>
+              <select
+                value={imageModel}
+                onChange={(e) => setImageModel(e.target.value)}
+                className="rounded border border-line bg-panel2 px-2 py-1 text-[11px] text-dim"
+              >
+                {IMAGE_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -310,6 +316,12 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             {busy === "publicar" ? "publicando…" : "Publicar agora"}
           </button>
         </div>
+        <p className="text-[11px] leading-relaxed text-faint">
+          <span className="text-dim">Rascunho</span>: guarda sem publicar (aprovar depois em Posts).{" "}
+          <span className="text-dim">Agendar</span>: usa a data acima.{" "}
+          <span className="text-dim">Auto-agendar</span>: encaixa no próximo horário fixo da marca.{" "}
+          <span className="text-dim">Publicar agora</span>: envia pro Instagram na hora.
+        </p>
       </div>
 
       {/* Preview ao vivo */}

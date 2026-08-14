@@ -121,7 +121,7 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
             disabled={s.saving}
             className="rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-ink disabled:opacity-50"
           >
-            {s.saving ? "criando…" : "Criar rascunho"}
+            {s.saving ? "criando…" : "Aceitar e criar rascunho"}
           </button>
         )}
       </div>
