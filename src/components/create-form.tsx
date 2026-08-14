@@ -95,6 +95,7 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const [template, setTemplate] = useState("");
   const [assunto, setAssunto] = useState("");
   const [segmento, setSegmento] = useState("");
+  const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
   const brand = brands.find((b) => b.id === brandId) ?? brands[0];
@@ -211,10 +212,31 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-      {/* Editor */}
+      {/* Editor em passos */}
       <div className="space-y-6">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[1, 2, 3, 4, 5].map((n, i) => (
+            <div key={n} className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setStep(n)}
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                  step === n ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
+                }`}
+              >
+                <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${step >= n ? "bg-ink text-canvas" : "bg-panel2 text-faint"}`}>
+                  {n}
+                </span>
+                {["Marca", "Tipo", "Mídia", "Legenda", "Agendar"][i]}
+              </button>
+              {i < 4 && <span className="text-faint">›</span>}
+            </div>
+          ))}
+        </div>
+
+        {step === 1 && (
         <div>
-          <label className={labelCls}>Marca</label>
+          <label className={labelCls}>Passo 1 — Escolha a marca</label>
           <div className="flex flex-wrap gap-2">
             {brands.map((b) => (
               <button
@@ -231,20 +253,28 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             ))}
           </div>
         </div>
+        )}
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className={labelCls}>Tipo</label>
-            <div className="inline-flex rounded-md border border-line bg-panel p-0.5">
-              {TIPOS.map((t) => (
-                <button key={t.v} type="button" onClick={() => setTipo(t.v)} className={seg(tipo === t.v)}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
+        {step === 2 && (
+        <div>
+          <label className={labelCls}>Passo 2 — Tipo de publicação</label>
+          <div className="inline-flex rounded-md border border-line bg-panel p-0.5">
+            {TIPOS.map((t) => (
+              <button key={t.v} type="button" onClick={() => setTipo(t.v)} className={seg(tipo === t.v)}>
+                {t.label}
+              </button>
+            ))}
           </div>
+          <p className="mt-2 text-xs text-faint">
+            Imagem, carrossel (2+ imagens) ou reel (vídeo vertical). O preview ao lado acompanha o formato.
+          </p>
+        </div>
+        )}
+
+        {step === 3 && (
+        <div className="space-y-5">
           <div>
-            <label className={labelCls}>Formato</label>
+            <label className={labelCls}>Formato da arte</label>
             <div className="inline-flex rounded-md border border-line bg-panel p-0.5">
               {FORMATOS.map((f) => (
                 <button key={f.v} type="button" onClick={() => setFormato(f.v)} className={seg(formato === f.v)}>
@@ -253,8 +283,6 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
               ))}
             </div>
           </div>
-        </div>
-
         <div>
           <label className={labelCls}>Mídia {tipo === "carousel" && <span className="text-faint">(2+ imagens)</span>}</label>
           <div className="flex flex-wrap gap-3">
@@ -318,7 +346,11 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             </div>
           </div>
         </div>
+        </div>
+        )}
 
+        {step === 4 && (
+        <div className="space-y-5">
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <label className="text-xs font-medium text-dim" htmlFor="legenda">
@@ -423,7 +455,10 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             className={inputCls}
           />
         </div>
+        </div>
+        )}
 
+        {step === 5 && (
         <div>
           <label className={labelCls} htmlFor="quando">Agendar para <span className="text-faint">(opcional)</span></label>
           <input
@@ -433,32 +468,47 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             onChange={(e) => setScheduledAt(e.target.value)}
             className={`${inputCls} max-w-xs`}
           />
+          <p className="mt-3 text-[11px] leading-relaxed text-faint">
+            <span className="text-dim">Rascunho</span>: guarda sem publicar (aprovar depois em Posts).{" "}
+            <span className="text-dim">Agendar</span>: usa a data acima.{" "}
+            <span className="text-dim">Auto-agendar</span>: encaixa no próximo horário fixo da marca.{" "}
+            <span className="text-dim">Publicar agora</span>: envia pro Instagram na hora.
+          </p>
         </div>
+        )}
 
         {error && (
           <p className="rounded-md border border-bad/30 bg-bad/5 px-3 py-2 text-sm text-bad">{error}</p>
         )}
 
-        <div className="flex flex-wrap gap-3 border-t border-line pt-5">
+        <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
+          {step > 1 && (
+            <button type="button" onClick={() => setStep((s) => s - 1)} className={btnGhost}>
+              ‹ Voltar
+            </button>
+          )}
+          {step < 5 && (
+            <button type="button" onClick={() => setStep((s) => s + 1)} className={btnPrimary}>
+              Avançar ›
+            </button>
+          )}
           <button type="button" onClick={() => submit("rascunho")} disabled={!!busy} className={btnGhost}>
             {busy === "rascunho" ? "salvando…" : "Salvar rascunho"}
           </button>
-          <button type="button" onClick={() => submit("agendar")} disabled={!!busy} className={btnGhost}>
-            {busy === "agendar" ? "agendando…" : "Agendar"}
-          </button>
-          <button type="button" onClick={() => submit("auto")} disabled={!!busy} className={btnGhost}>
-            {busy === "auto" ? "agendando…" : "Auto-agendar"}
-          </button>
-          <button type="button" onClick={() => submit("publicar")} disabled={!!busy} className={btnPrimary}>
-            {busy === "publicar" ? "publicando…" : "Publicar agora"}
-          </button>
+          {step === 5 && (
+            <>
+              <button type="button" onClick={() => submit("agendar")} disabled={!!busy} className={btnGhost}>
+                {busy === "agendar" ? "agendando…" : "Agendar"}
+              </button>
+              <button type="button" onClick={() => submit("auto")} disabled={!!busy} className={btnGhost}>
+                {busy === "auto" ? "agendando…" : "Auto-agendar"}
+              </button>
+              <button type="button" onClick={() => submit("publicar")} disabled={!!busy} className={btnPrimary}>
+                {busy === "publicar" ? "publicando…" : "Publicar agora"}
+              </button>
+            </>
+          )}
         </div>
-        <p className="text-[11px] leading-relaxed text-faint">
-          <span className="text-dim">Rascunho</span>: guarda sem publicar (aprovar depois em Posts).{" "}
-          <span className="text-dim">Agendar</span>: usa a data acima.{" "}
-          <span className="text-dim">Auto-agendar</span>: encaixa no próximo horário fixo da marca.{" "}
-          <span className="text-dim">Publicar agora</span>: envia pro Instagram na hora.
-        </p>
       </div>
 
       {/* Preview ao vivo */}
