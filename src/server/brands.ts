@@ -11,11 +11,17 @@ export type Brand = {
   ig_user_id: string | null;
   ig_token: string | null;
   ig_picture: string | null;
+  logo_url: string | null;
   linkedin_org_id: string | null;
   linkedin_token: string | null;
   site_url: string;
   ativo: boolean;
 };
+
+/** avatar da marca: logo enviada manualmente > foto do Instagram > nada. */
+export function avatarOf(b: { logo_url: string | null; ig_picture: string | null }): string | null {
+  return b.logo_url ?? b.ig_picture ?? null;
+}
 
 export async function getBrand(slug: string): Promise<Brand | null> {
   const [b] = await sql<Brand[]>`select * from brands where slug = ${slug} limit 1`;
@@ -48,6 +54,7 @@ export type BrandPatch = Partial<
     | "ig_user_id"
     | "ig_token"
     | "ig_picture"
+    | "logo_url"
     | "linkedin_org_id"
     | "linkedin_token"
     | "site_url"

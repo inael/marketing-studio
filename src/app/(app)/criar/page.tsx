@@ -1,4 +1,4 @@
-import { listBrands } from "@/server/brands";
+import { listBrands, avatarOf } from "@/server/brands";
 import { CreateForm } from "@/components/create-form";
 import { PageHeader, Empty } from "@/components/ui";
 import Link from "next/link";
@@ -12,6 +12,7 @@ export default async function CriarPage() {
     slug: b.slug,
     nome: b.nome,
     cor_principal: b.cor_principal,
+    avatar: avatarOf(b),
   }));
 
   return (

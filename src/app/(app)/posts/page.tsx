@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listPosts, postsAnalytics } from "@/server/posts";
-import { listAllBrands } from "@/server/brands";
+import { listAllBrands, avatarOf } from "@/server/brands";
 import { PostsView } from "@/components/posts-view";
 import { PageHeader, Empty, btnPrimary } from "@/components/ui";
 
@@ -17,6 +17,7 @@ export default async function PostsPage() {
     slug: b.slug,
     nome: b.nome,
     cor_principal: b.cor_principal,
+    avatar: avatarOf(b),
   }));
 
   return (

@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import { readableOn } from "@/lib/ui";
 
 type Props = {
@@ -13,6 +15,7 @@ type Props = {
   time?: string;
   compact?: boolean;
   badge?: ReactNode;
+  tipo?: string;
 };
 
 /** Simula o card de um post no Instagram (claro/escuro conforme o tema do app,
@@ -29,9 +32,16 @@ export function InstagramPreview({
   time,
   compact,
   badge,
+  tipo,
 }: Props) {
   const multi = media.length > 1;
   const tags = hashtags.filter(Boolean);
+  const [idx, setIdx] = useState(0);
+  const cur = media.length ? Math.min(idx, media.length - 1) : 0;
+  const go = (delta: number) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIdx((i) => Math.max(0, Math.min(media.length - 1, i + delta)));
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-panel">
@@ -65,27 +75,60 @@ export function InstagramPreview({
         </svg>
       </div>
 
-      {/* imagem */}
-      <div className="relative aspect-square w-full bg-panel2">
-        {media[0] ? (
+      {/* imagem (proporção conforme o tipo: reel = vertical 9:16) */}
+      <div className={`relative w-full bg-panel2 ${tipo === "reel" ? "aspect-[9/16]" : "aspect-square"}`}>
+        {media[cur] ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={media[0]} alt="" className="h-full w-full object-cover" />
+          <img src={media[cur]} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="grid h-full w-full place-items-center text-xs text-faint">
-            sua imagem aparece aqui
+            {tipo === "reel" ? "seu reel aparece aqui" : "sua imagem aparece aqui"}
           </div>
         )}
-        {multi && (
-          <span className="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
-            1/{media.length}
+
+        {tipo === "reel" && (
+          <span className="absolute right-2 top-2 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+            REEL
           </span>
         )}
-        {multi && (
+        {multi && tipo !== "reel" && (
+          <span className="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+            {cur + 1}/{media.length}
+          </span>
+        )}
+
+        {/* setas do carrossel (não no modo compacto da grade) */}
+        {multi && !compact && (
+          <>
+            {cur > 0 && (
+              <button
+                type="button"
+                onClick={go(-1)}
+                aria-label="Anterior"
+                className="absolute left-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/65"
+              >
+                ‹
+              </button>
+            )}
+            {cur < media.length - 1 && (
+              <button
+                type="button"
+                onClick={go(1)}
+                aria-label="Próxima"
+                className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/65"
+              >
+                ›
+              </button>
+            )}
+          </>
+        )}
+
+        {multi && tipo !== "reel" && (
           <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1">
-            {media.slice(0, 5).map((_, i) => (
+            {media.slice(0, 8).map((_, i) => (
               <span
                 key={i}
-                className={`h-1.5 w-1.5 rounded-full ${i === 0 ? "bg-white" : "bg-white/50"}`}
+                className={`h-1.5 w-1.5 rounded-full ${i === cur ? "bg-white" : "bg-white/50"}`}
               />
             ))}
           </div>
@@ -108,9 +151,13 @@ export function InstagramPreview({
       )}
 
       {/* legenda */}
-      <div className={`px-3 ${typeof likes === "number" ? "pt-1" : "pt-2"} text-[13px] leading-snug`}>
+      <div
+        className={`px-3 ${typeof likes === "number" ? "pt-1" : "pt-2"} ${
+          compact ? "min-h-[2.75rem] pb-1" : ""
+        } text-[13px] leading-snug`}
+      >
         {legenda || tags.length > 0 ? (
-          <p className="whitespace-pre-wrap break-words text-ink">
+          <p className={`whitespace-pre-wrap break-words text-ink ${compact ? "line-clamp-2" : ""}`}>
             <span className="font-semibold">{username} </span>
             {legenda}
             {tags.length > 0 && (

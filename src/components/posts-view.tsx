@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui";
 import { InstagramPreview } from "@/components/instagram-preview";
 import { TIPO, FORMATO, STATUS, fmtDate, type StatusKey } from "@/lib/ui";
 
-type BrandLite = { id: string; slug: string; nome: string; cor_principal: string };
+type BrandLite = { id: string; slug: string; nome: string; cor_principal: string; avatar: string | null };
 const STATUS_ORDER: StatusKey[] = ["draft", "approved", "scheduled", "published", "failed"];
 
 function Dropdown({
@@ -218,9 +218,11 @@ export function PostsView({
                   compact
                   username={b?.slug ?? "?"}
                   cor={b?.cor_principal ?? "#000"}
+                  picture={b?.avatar}
                   media={p.media}
                   legenda={p.legenda}
                   hashtags={p.hashtags}
+                  tipo={p.tipo}
                   badge={
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-1.5 py-0.5 text-[10px] text-dim">
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: st?.dot ?? "#888" }} />
@@ -337,9 +339,11 @@ export function PostsView({
             <InstagramPreview
               username={byId.get(open.brand_id)?.slug ?? "?"}
               cor={byId.get(open.brand_id)?.cor_principal ?? "#000"}
+              picture={byId.get(open.brand_id)?.avatar}
               media={open.media}
               legenda={open.legenda}
               hashtags={open.hashtags}
+              tipo={open.tipo}
               time={open.scheduled_at ? fmtDate(open.scheduled_at) : undefined}
             />
 

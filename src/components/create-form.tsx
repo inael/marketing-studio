@@ -7,7 +7,7 @@ import { InstagramPreview } from "@/components/instagram-preview";
 import { btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 import { IMAGE_MODELS } from "@/lib/models";
 
-type BrandLite = { id: string; slug: string; nome: string; cor_principal: string };
+type BrandLite = { id: string; slug: string; nome: string; cor_principal: string; avatar?: string | null };
 
 const TIPOS: { v: CreateInput["tipo"]; label: string }[] = [
   { v: "image", label: "Imagem" },
@@ -46,6 +46,33 @@ function parseTags(raw: string): string[] {
     .filter(Boolean);
 }
 
+// Reduz a imagem no cliente (máx 1600px + JPEG) pra não estourar o limite de
+// upload da Vercel (~4.5MB) — corrige o erro 413 com fotos grandes.
+async function compressImage(file: File): Promise<{ blob: Blob; name: string }> {
+  if (!file.type.startsWith("image/")) return { blob: file, name: file.name };
+  const MAX = 1600;
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) return { blob: file, name: file.name };
+  const big = Math.max(bitmap.width, bitmap.height);
+  if (big <= MAX && file.size < 3_500_000) {
+    bitmap.close?.();
+    return { blob: file, name: file.name };
+  }
+  const scale = Math.min(1, MAX / big);
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { blob: file, name: file.name };
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+  const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.85));
+  const base = file.name.replace(/\.[^.]+$/, "") || "imagem";
+  return blob ? { blob, name: `${base}.jpg` } : { blob: file, name: file.name };
+}
+
 export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -79,8 +106,9 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
     setUploading(true);
     try {
       for (const f of Array.from(files)) {
+        const { blob, name } = await compressImage(f);
         const fd = new FormData();
-        fd.append("file", f);
+        fd.append("file", blob, name);
         fd.append("brand_id", brand?.id ?? "");
         const r = await fetch("/api/media", { method: "POST", body: fd });
         const data = await r.json();
@@ -439,9 +467,11 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
         <InstagramPreview
           username={brand?.slug ?? "marca"}
           cor={brand?.cor_principal ?? "#000"}
+          picture={brand?.avatar}
           media={media}
           legenda={legenda}
           hashtags={tags}
+          tipo={tipo}
         />
       </div>
     </div>
