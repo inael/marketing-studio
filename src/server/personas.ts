@@ -9,6 +9,7 @@ export type Persona = {
   modelo: string;
   skills: string;
   ativo: boolean;
+  foto_url: string | null;
 };
 
 export async function listPersonas(): Promise<Persona[]> {
@@ -30,7 +31,7 @@ export async function getPersona(id: string): Promise<Persona | null> {
 }
 
 export type PersonaPatch = Partial<
-  Pick<Persona, "nome" | "tracos" | "instrucoes" | "modelo" | "skills" | "ativo">
+  Pick<Persona, "nome" | "tracos" | "instrucoes" | "modelo" | "skills" | "ativo" | "foto_url">
 >;
 
 export async function updatePersona(id: string, patch: PersonaPatch): Promise<void> {

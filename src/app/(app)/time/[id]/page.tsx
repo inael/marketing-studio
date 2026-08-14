@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPersona } from "@/server/personas";
 import { savePersona } from "../actions";
+import { PersonaFoto } from "@/components/persona-foto";
 import { PageHeader, btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,11 @@ export default async function EditPersonaPage({
           </Link>
         }
       />
+
+      <div className="mb-6 max-w-2xl">
+        <label className={labelCls}>Foto do {p.papel === "gestor" ? "gestor" : "analista"}</label>
+        <PersonaFoto id={p.id} foto={p.foto_url} nome={p.nome} />
+      </div>
 
       <form action={action} className="max-w-2xl space-y-5">
         <div>

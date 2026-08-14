@@ -22,3 +22,12 @@ export async function savePersona(id: string, formData: FormData) {
   revalidatePath("/time");
   redirect("/time");
 }
+
+export async function setPersonaFoto(id: string, url: string): Promise<{ ok: boolean }> {
+  const { isAuthenticated } = await getLogtoContext(logtoConfig);
+  if (!isAuthenticated) return { ok: false };
+  await updatePersona(id, { foto_url: url });
+  revalidatePath("/time");
+  revalidatePath(`/time/${id}`);
+  return { ok: true };
+}
