@@ -19,6 +19,25 @@ const FORMATOS: { v: string; label: string }[] = [
   { v: "com_personagem", label: "Com personagem" },
   { v: "demo_ui", label: "Demo de UI" },
 ];
+const TONS: { v: string; label: string }[] = [
+  { v: "direto", label: "Direto" },
+  { v: "casual", label: "Casual" },
+  { v: "persuasivo", label: "Persuasivo" },
+  { v: "alegre", label: "Alegre" },
+  { v: "amigavel", label: "Amigável" },
+];
+const TAMANHOS: { v: string; label: string }[] = [
+  { v: "curta", label: "Curta" },
+  { v: "media", label: "Média" },
+  { v: "longa", label: "Longa" },
+];
+const TEMPLATES = [
+  "Um post sobre",
+  "Escreva razões para",
+  "O que fazer para",
+  "Aponte os benefícios de",
+  "Explique como",
+];
 
 function parseTags(raw: string): string[] {
   return raw
@@ -43,6 +62,12 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const [imgBusy, setImgBusy] = useState(false);
   const [imageModel, setImageModel] = useState(IMAGE_MODELS[0].id);
   const [imgPrompt, setImgPrompt] = useState("");
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [tom, setTom] = useState("");
+  const [tamanho, setTamanho] = useState("media");
+  const [template, setTemplate] = useState("");
+  const [assunto, setAssunto] = useState("");
+  const [segmento, setSegmento] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const brand = brands.find((b) => b.id === brandId) ?? brands[0];
@@ -103,11 +128,21 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
       const r = await fetch("/api/ai/caption", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand_id: brand.id, atual: legenda, tipo }),
+        body: JSON.stringify({
+          brand_id: brand.id,
+          atual: legenda,
+          tipo,
+          tom,
+          tamanho,
+          template,
+          assunto,
+          segmento,
+        }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "falha na IA");
       setLegenda(String(data.caption ?? ""));
+      setStudioOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "falha na IA");
     } finally {
@@ -140,6 +175,10 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
   const seg = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-sm transition-colors ${
       active ? "bg-panel2 text-ink" : "text-dim hover:text-ink"
+    }`;
+  const pill = (active: boolean) =>
+    `rounded-full border px-2.5 py-1 text-xs transition-colors ${
+      active ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
     }`;
 
   return (
@@ -259,13 +298,83 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
             </label>
             <button
               type="button"
-              onClick={genCaption}
-              disabled={aiBusy || !brand}
+              onClick={() => setStudioOpen((o) => !o)}
+              disabled={!brand}
               className="text-xs text-info transition-opacity hover:opacity-80 disabled:opacity-40"
             >
-              {aiBusy ? "gerando…" : "✦ Gerar com IA"}
+              {studioOpen ? "fechar estúdio" : "✦ Gerar com IA"}
             </button>
           </div>
+
+          {studioOpen && (
+            <div className="mb-3 space-y-3 rounded-lg border border-line bg-panel/50 p-3">
+              <div>
+                <div className="mb-1.5 text-[11px] font-medium text-dim">
+                  Segmento / categoria <span className="text-faint">(opcional)</span>
+                </div>
+                <input
+                  value={segmento}
+                  onChange={(e) => setSegmento(e.target.value)}
+                  placeholder="ex: desenvolvimento de sistemas e apps, moda, alimentação…"
+                  className={`${inputCls} text-xs`}
+                />
+              </div>
+              <div>
+                <div className="mb-1.5 text-[11px] font-medium text-dim">Tom de voz</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TONS.map((t) => (
+                    <button key={t.v} type="button" onClick={() => setTom(t.v)} className={pill(tom === t.v)}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-1.5 text-[11px] font-medium text-dim">Tamanho</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TAMANHOS.map((t) => (
+                    <button
+                      key={t.v}
+                      type="button"
+                      onClick={() => setTamanho(t.v)}
+                      className={pill(tamanho === t.v)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-1.5 text-[11px] font-medium text-dim">Pauta</div>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={template}
+                    onChange={(e) => setTemplate(e.target.value)}
+                    className="rounded-md border border-line bg-panel2 px-2 py-1.5 text-xs text-dim"
+                  >
+                    <option value="">Livre</option>
+                    {TEMPLATES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}…
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={assunto}
+                    onChange={(e) => setAssunto(e.target.value)}
+                    placeholder="assunto / tema (ex: usar a JetSend no e-mail marketing)"
+                    className={`${inputCls} min-w-48 flex-1 text-xs`}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={genCaption} disabled={aiBusy || !brand} className={btnPrimary}>
+                  {aiBusy ? "gerando…" : "Gerar legenda"}
+                </button>
+                <span className="text-[11px] text-faint">a legenda vai pro campo abaixo pra você ajustar</span>
+              </div>
+            </div>
+          )}
           <textarea
             id="legenda"
             value={legenda}

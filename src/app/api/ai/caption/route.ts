@@ -28,22 +28,47 @@ export async function POST(req: NextRequest) {
     tema?: string;
     atual?: string;
     tipo?: string;
+    tom?: string;
+    tamanho?: string;
+    template?: string;
+    assunto?: string;
+    segmento?: string;
   };
   const brand = body.brand_id ? await getBrandById(body.brand_id) : null;
   if (!brand) {
     return NextResponse.json({ error: "marca inválida" }, { status: 400 });
   }
 
-  const sys = `Você é redator de social media da ${brand.nome} (${brand.site_url}). Escreva legendas de Instagram em português do Brasil no tom de voz da marca: ${
-    brand.tom_voz || "profissional, claro e direto"
-  }. Regras: 1 a 3 frases curtas; no máximo 1 emoji (ou nenhum); NÃO inclua hashtags (vão em campo separado); nunca use travessão (—); termine com um CTA leve. Responda apenas com a legenda, sem aspas nem rótulos.`;
+  const TOM: Record<string, string> = {
+    direto: "direto e objetivo, sem rodeios",
+    casual: "casual e descontraído, como uma conversa",
+    persuasivo: "persuasivo, com foco em conversão e prova de valor",
+    alegre: "alegre e animado, com energia positiva",
+    amigavel: "amigável e acolhedor, próximo do público",
+  };
+  const TAMANHO: Record<string, { desc: string; tokens: number }> = {
+    curta: { desc: "1 frase curta e impactante", tokens: 140 },
+    media: { desc: "2 a 3 frases", tokens: 320 },
+    longa: { desc: "4 a 6 frases com um pequeno desenvolvimento", tokens: 650 },
+  };
+  const tomTxt = body.tom ? TOM[body.tom] ?? body.tom : brand.tom_voz || "profissional, claro e direto";
+  const tam = TAMANHO[body.tamanho ?? "media"] ?? TAMANHO.media;
+
+  const sys = `Você é redator de social media da ${brand.nome} (${brand.site_url}).${
+    body.segmento ? ` Segmento/categoria do perfil: ${body.segmento}.` : ""
+  } Escreva legendas de Instagram em português do Brasil. Tom de voz: ${tomTxt}. Tamanho: ${
+    tam.desc
+  }. Regras: no máximo 1 emoji (ou nenhum); NÃO inclua hashtags (vão em campo separado); nunca use travessão (—); termine com um CTA leve. Responda apenas com a legenda, sem aspas nem rótulos.`;
+
+  // template de pauta ("Aponte os benefícios de") + assunto ("usar a JetSend")
+  const briefing = [body.template?.trim(), body.assunto?.trim()].filter(Boolean).join(" ").trim();
 
   const user = [
     body.tipo ? `Tipo de post: ${body.tipo}.` : "",
-    body.tema ? `Tema/briefing: ${body.tema}.` : "",
+    briefing ? `Pauta: ${briefing}.` : body.tema ? `Tema/briefing: ${body.tema}.` : "",
     body.atual?.trim()
       ? `Reescreva e melhore a partir deste rascunho: "${body.atual.trim()}".`
-      : "Crie uma legenda nova e envolvente.",
+      : "Crie uma legenda nova e envolvente sobre a pauta acima.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -62,7 +87,7 @@ export async function POST(req: NextRequest) {
           { role: "user", content: user },
         ],
         temperature: 0.8,
-        max_tokens: 300,
+        max_tokens: tam.tokens,
       }),
     });
     const data = await r.json().catch(() => ({}));
