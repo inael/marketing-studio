@@ -112,6 +112,32 @@ Página do Facebook (a @itboosterglobal já está).
 
 ---
 
+## Como as imagens são geradas (importante)
+
+Existem **3 carteiras** diferentes na Higgsfield — não se misturam:
+
+1. **Site da Higgsfield** — os "365 Unlimited" (FLUX.2 Pro, Nano Banana, etc.):
+   ilimitado e grátis, mas **só clicando no site**.
+2. **MCP / sessão Claude** — plano **Ultra, ~711 créditos**. FLUX.2 Pro 1K custa
+   **1 crédito/imagem**. É o que usamos pra gerar imagem no automático.
+3. **API REST** (a que o botão "Gerar imagem" do app chama) — conta de
+   desenvolvedor **separada e zerada** → dá 403.
+
+Fluxo automático de imagem (funciona hoje):
+
+```
+cron 8h (Vercel)  →  rascunho com texto
+sessão Claude     →  gera a imagem (FLUX.2 Pro, 1 crédito) → R2 → anexa ao post
+você              →  aprova em Posts → publica
+```
+
+Ferramentas: `tools/list_auto_drafts.mjs <slug>` lista os rascunhos sem imagem;
+`tools/attach_media.mjs <post_id> <url>` anexa a imagem gerada ao post.
+
+Como o cron da Vercel não alcança o MCP, a geração de imagem no automático
+precisa de uma **sessão Claude** (sob demanda, ou agendada de manhã). Alternativa
+100% self-service: fazer **top-up de créditos na conta da API REST**.
+
 ## Status honesto de cada item
 
 | Item | Status |
@@ -119,7 +145,7 @@ Página do Facebook (a @itboosterglobal já está).
 | Login / sessão | ✅ Corrigido. Re-logar uma vez. |
 | Subir imagem / criar post | ✅ Funciona (depois do re-login). |
 | Legenda com IA | ✅ Funciona (gateway UseTokia). |
-| **Gerar imagem com IA** | ⚠️ Campo pronto, mas a Higgsfield exige crédito pago na API (o plano web é só MCP). Alternativa: subir imagem manual, ou gerar via MCP e mandar pra Biblioteca. |
+| **Gerar imagem com IA** | ✅ Via sessão Claude (MCP Higgsfield): **FLUX.2 Pro 1K = 1 crédito/imagem**, ~711 créditos = ~711 imagens. Os 6 modelos "365 Unlimited" do print são grátis **só no site** da Higgsfield — a API/MCP não usa essa cota. O botão do app usa a API REST (conta de dev separada, zerada) → por isso 403; ou faz top-up dessa conta, ou gera via sessão. |
 | Sugestões do time (3+3) | ✅ Funciona e foi testado. |
 | Gestor (revisar/escolher/feedback) | ✅ Funciona. |
 | Automação 8h (rascunhos) | ✅ Testada — gerou 24 rascunhos reais. Ligar em Config. |
