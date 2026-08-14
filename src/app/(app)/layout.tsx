@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-line bg-panel">
-        <Link href="/posts" className="flex flex-col gap-0.5 px-6 pb-5 pt-6">
+        <Link href="/dashboard" className="flex flex-col gap-0.5 px-6 pb-5 pt-6">
           <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-faint">
             IT Booster
           </span>

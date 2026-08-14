@@ -19,7 +19,7 @@ Status vai sendo marcado aqui conforme entrega.
 | Spec | Status |
 |---|---|
 | 04 Tema light/dark | ✅ feito |
-| 05 Dashboard | ⏳ próximo |
-| 01 Relatórios | ⬜ |
+| 05 Dashboard | ✅ feito |
+| 01 Relatórios | ⏳ próximo |
 | 03 Mercado + insights | ⬜ |
 | 02 Estúdio de legenda | ⬜ |

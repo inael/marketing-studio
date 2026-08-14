@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // uma porta de entrada limpa e branded (a landing completa é fase própria).
 export default async function Home() {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
-  if (isAuthenticated) redirect("/posts");
+  if (isAuthenticated) redirect("/dashboard");
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-6 text-center bg-neutral-950 text-neutral-100">

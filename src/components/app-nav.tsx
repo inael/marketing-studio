@@ -5,6 +5,18 @@ import { usePathname } from "next/navigation";
 
 const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
   {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: (
+      <>
+        <rect x="4" y="4" width="7" height="9" rx="1.5" strokeWidth="1.6" />
+        <rect x="4" y="16" width="7" height="4" rx="1.5" strokeWidth="1.6" />
+        <rect x="13" y="4" width="7" height="4" rx="1.5" strokeWidth="1.6" />
+        <rect x="13" y="11" width="7" height="9" rx="1.5" strokeWidth="1.6" />
+      </>
+    ),
+  },
+  {
     href: "/posts",
     label: "Posts",
     icon: (
