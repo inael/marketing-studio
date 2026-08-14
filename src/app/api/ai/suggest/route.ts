@@ -16,10 +16,17 @@ export async function POST(req: NextRequest) {
   const cfg = await getAiConfig();
   if (!cfg) return NextResponse.json({ error: "IA de texto não configurada em Config." }, { status: 400 });
 
-  const body = (await req.json().catch(() => ({}))) as { brand_id?: string; feedback?: string };
+  const body = (await req.json().catch(() => ({}))) as {
+    brand_id?: string;
+    feedback?: string;
+    fonte?: "noticia" | "concorrente";
+  };
   if (!body.brand_id) return NextResponse.json({ error: "marca inválida" }, { status: 400 });
 
-  const result = await generateSuggestionsById(body.brand_id, cfg, body.feedback);
+  const result = await generateSuggestionsById(body.brand_id, cfg, {
+    fonte: body.fonte,
+    feedback: body.feedback,
+  });
   if (!result) return NextResponse.json({ error: "marca inválida" }, { status: 400 });
 
   if (!result.noticias.length && !result.concorrentes.length) {

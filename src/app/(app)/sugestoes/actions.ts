@@ -9,6 +9,7 @@ import {
   deleteSuggestion,
   deleteSuggestions,
   clearSuggestions,
+  updateSuggestion,
 } from "@/server/suggestions";
 import { revalidatePath } from "next/cache";
 
@@ -38,7 +39,7 @@ export async function acceptSuggestion(
       tipo,
       formato: "sem_personagem",
       legenda: s.legenda,
-      hashtags: [],
+      hashtags: s.hashtags ?? [],
       media: [],
       status: "draft",
       analista: s.analista,
@@ -54,6 +55,16 @@ export async function acceptSuggestion(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "erro ao criar rascunho" };
   }
+}
+
+export async function updateSuggestionAction(
+  id: string,
+  patch: { legenda?: string; imagem_prompt?: string; hashtags?: string[] }
+): Promise<{ ok: boolean }> {
+  if (!(await requireAuth())) return { ok: false };
+  await updateSuggestion(id, patch);
+  revalidatePath("/sugestoes");
+  return { ok: true };
 }
 
 export async function dismissSuggestion(id: string): Promise<{ ok: boolean }> {

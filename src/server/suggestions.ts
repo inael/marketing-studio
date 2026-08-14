@@ -15,6 +15,7 @@ export type Suggestion = {
   ref_url: string | null;
   ref_label: string | null;
   imagem_prompt: string | null;
+  hashtags: string[];
   status: string;
   created_at: string;
 };
@@ -50,10 +51,21 @@ export async function addSuggestions(
       ref_url: i.ref_url ?? null,
       ref_label: i.ref_label ?? null,
       imagem_prompt: i.imagem_prompt ?? null,
+      hashtags: i.hashtags ?? [],
     }));
   if (!rows.length) return [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return sql<Suggestion[]>`insert into suggestions ${sql(rows as any)} returning *`;
+}
+
+export async function updateSuggestion(
+  id: string,
+  patch: { legenda?: string; imagem_prompt?: string; hashtags?: string[] }
+): Promise<void> {
+  if (patch.legenda !== undefined) await sql`update suggestions set legenda=${patch.legenda} where id=${id}`;
+  if (patch.imagem_prompt !== undefined)
+    await sql`update suggestions set imagem_prompt=${patch.imagem_prompt} where id=${id}`;
+  if (patch.hashtags !== undefined) await sql`update suggestions set hashtags=${patch.hashtags} where id=${id}`;
 }
 
 export async function deleteSuggestion(id: string): Promise<void> {

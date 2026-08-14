@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listBrands } from "@/server/brands";
+import { listBrands, avatarOf } from "@/server/brands";
 import { listSuggestions } from "@/server/suggestions";
 import { listAnalysts } from "@/server/personas";
 import { Suggestions } from "@/components/suggestions";
@@ -18,6 +18,7 @@ export default async function SugestoesPage() {
     slug: b.slug,
     nome: b.nome,
     cor_principal: b.cor_principal,
+    avatar: avatarOf(b),
   }));
 
   return (

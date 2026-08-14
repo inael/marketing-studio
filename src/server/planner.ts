@@ -5,7 +5,9 @@ import { listAnalysts, type Persona } from "./personas";
 import { fetchRss, competitorTopPosts, type CompetitorPost, type RssItem } from "./signals";
 
 // Núcleo de geração de sugestões, compartilhado entre a rota /api/ai/suggest
-// (uso manual) e os crons de automação (uso hands-off).
+// (uso manual, por fonte) e os crons de automação (uso hands-off, ambas).
+
+export type Fonte = "noticia" | "concorrente";
 
 export type Idea = {
   titulo?: string;
@@ -13,6 +15,7 @@ export type Idea = {
   legenda?: string;
   formato?: string;
   analista?: string;
+  hashtags?: string[];
   ref_url?: string | null;
   ref_label?: string | null;
   imagem_prompt?: string | null;
@@ -26,8 +29,16 @@ export type SuggestResult = {
 };
 
 type CompPost = CompetitorPost & { username: string };
+type RawIdea = {
+  titulo?: string;
+  angulo?: string;
+  legenda?: string;
+  formato?: string;
+  fonte_idx?: number;
+  imagem_prompt?: string;
+  hashtags?: string[];
+};
 
-/** resolve a conta IG da marca: colada na marca > env por-slug > env itbooster */
 export function resolveIg(brand: Brand): { igUserId: string; token: string } | null {
   if (brand.ig_user_id && brand.ig_token) return { igUserId: brand.ig_user_id, token: brand.ig_token };
   const p = brand.slug.toUpperCase();
@@ -69,7 +80,7 @@ async function chatJson(cfg: AiConfig, model: string, sys: string, user: string)
           { role: "user", content: user },
         ],
         temperature: 0.85,
-        max_tokens: 1100,
+        max_tokens: 900,
       }),
     });
     if (!r.ok) return null;
@@ -80,130 +91,123 @@ async function chatJson(cfg: AiConfig, model: string, sys: string, user: string)
   }
 }
 
-type RawIdea = { titulo?: string; angulo?: string; legenda?: string; formato?: string; fonte_idx?: number; imagem_prompt?: string };
+const norm = (h: unknown): string[] =>
+  Array.isArray(h)
+    ? h.map((x) => String(x).replace(/^#/, "").replace(/\s+/g, "").trim()).filter(Boolean).slice(0, 6)
+    : [];
 
 async function callAnalyst(
   cfg: AiConfig,
   a: Persona,
   brand: Brand,
+  fonte: Fonte,
   signals: string,
   feedback?: string
-): Promise<{ analista: string; noticia?: RawIdea; concorrente?: RawIdea } | null> {
+): Promise<{ analista: string; idea: RawIdea } | null> {
   const model = a.modelo || cfg.model;
+  const alvo =
+    fonte === "concorrente"
+      ? "inspirada nos CONCORRENTES (tema/ângulo que engajou; NUNCA copie a legenda deles)"
+      : "inspirada nas NOTÍCIAS";
   const sys = `Você é ${a.nome}, analista de mídias sociais da ${brand.nome} (${brand.site_url}). Persona: ${
     a.tracos || "equilibrado"
   }. Skills: ${a.skills || "geral"}. ${a.instrucoes} Tom de voz da marca: ${
     brand.tom_voz || "profissional e claro"
-  }. Com base nos SINAIS (cada item vem numerado [n]), proponha 1 ideia de post inspirada nas NOTÍCIAS e 1 inspirada nos CONCORRENTES, no SEU estilo. Regras: conecte ao que a marca faz; NUNCA copie a legenda do concorrente; legenda pronta em pt-BR, 1-3 frases, sem hashtags, sem travessão. Em "fonte_idx" devolva o número [n] do item que você usou. Em "imagem_prompt" escreva EM PORTUGUÊS um prompt curto e realista pra gerar a imagem do post (foto editorial, sem texto, sem cara de IA, nada de roxo/neon), de forma que qualquer pessoa entenda a cena.${
+  }. Com base nos SINAIS (itens numerados [n]), proponha 1 POST COMPLETO ${alvo}, no SEU estilo. Regras: conecte ao que a marca faz; legenda pronta em pt-BR, 1-3 frases, sem travessão; inclua de 3 a 6 HASHTAGS relevantes (sem #); em "fonte_idx" devolva o número [n] do item usado; em "imagem_prompt" escreva EM PORTUGUÊS um prompt curto e realista pra a imagem (foto editorial, sem texto, sem cara de IA, nada de roxo/neon).${
     feedback ? ` Feedback do gestor pra melhorar: ${feedback}` : ""
-  } Responda SOMENTE JSON: {"noticia":{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","fonte_idx":0,"imagem_prompt":""},"concorrente":{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","fonte_idx":0,"imagem_prompt":""}}.`;
-  const parsed = (await chatJson(cfg, model, sys, signals)) as {
-    noticia?: RawIdea;
-    concorrente?: RawIdea;
-  } | null;
-  if (!parsed) return null;
-  return { analista: a.nome, noticia: parsed.noticia, concorrente: parsed.concorrente };
+  } Responda SOMENTE JSON: {"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","fonte_idx":0,"imagem_prompt":"","hashtags":["",""]}.`;
+  const parsed = (await chatJson(cfg, model, sys, signals)) as RawIdea | null;
+  if (!parsed?.legenda) return null;
+  return { analista: a.nome, idea: parsed };
 }
 
-/** Gera as sugestões do time (analistas em paralelo) para uma marca. */
+const idxOf = (n: unknown, max: number) => (typeof n === "number" && n >= 0 && n < max ? n : null);
+
+/** Gera sugestões do time. opts.fonte limita a uma fonte; sem fonte, gera ambas. */
 export async function generateSuggestions(
   brand: Brand,
   cfg: AiConfig,
-  feedback?: string
+  opts: { fonte?: Fonte; feedback?: string } = {}
 ): Promise<SuggestResult> {
+  const { fonte, feedback } = opts;
   const [sources, analystsRaw] = await Promise.all([listSources(brand.id), listAnalysts()]);
-  const rssUrls = sources.filter((s) => s.kind === "rss").slice(0, 3);
-  const comps = sources.filter((s) => s.kind === "competitor").slice(0, 5);
-
-  const rssBatches = await Promise.all(rssUrls.map((s) => fetchRss(s.value)));
-  const rssItems: RssItem[] = rssBatches.flat().slice(0, 12);
-
-  const acc = resolveIg(brand);
-  const warnings: string[] = [];
-  let compPosts: CompPost[] = [];
-  if (acc && comps.length) {
-    const batches = await Promise.all(
-      comps.map(async (c) => (await competitorTopPosts(acc, c.value, 2)).map((p) => ({ ...p, username: c.value })))
-    );
-    compPosts = batches.flat().sort((a, b) => b.likes + b.comments - (a.likes + a.comments)).slice(0, 8);
-  } else if (comps.length && !acc) {
-    warnings.push("sem conta IG conectada pra ler concorrentes");
-  }
-
-  const signals = [
-    rssItems.length
-      ? `NOTÍCIAS:\n${rssItems.map((i, idx) => `[${idx}] ${i.title}`).join("\n")}`
-      : "NOTÍCIAS: (nenhuma; use conhecimento do setor)",
-    compPosts.length
-      ? `CONCORRENTES (o que engajou; inspiração de tema, não copiar):\n${compPosts
-          .map((p, idx) => `[${idx}] @${p.username} (${p.likes} curtidas): ${(p.caption || "").replace(/\s+/g, " ").slice(0, 140)}`)
-          .join("\n")}`
-      : "CONCORRENTES: (sem dados; proponha com base no posicionamento da marca)",
-  ].join("\n\n");
-
   const analysts =
     analystsRaw.length > 0
       ? analystsRaw
       : ([{ id: "", nome: "Analista", papel: "analista", tracos: "", instrucoes: "", modelo: "", skills: "", ativo: true }] as Persona[]);
+  const warnings: string[] = [];
+  const meta = { rss: 0, competitors: 0, warnings };
 
-  const results = (
-    await Promise.all(analysts.map((a) => callAnalyst(cfg, a, brand, signals, feedback)))
-  ).filter(Boolean) as { analista: string; noticia?: RawIdea; concorrente?: RawIdea }[];
+  async function genForFonte(f: Fonte): Promise<Idea[]> {
+    let signals = "";
+    let refs: { url: string | null; label: string | null }[] = [];
 
-  const idxOf = (n: unknown, max: number) =>
-    typeof n === "number" && n >= 0 && n < max ? n : null;
+    if (f === "noticia") {
+      const rssUrls = sources.filter((s) => s.kind === "rss").slice(0, 3);
+      const rssItems: RssItem[] = (await Promise.all(rssUrls.map((s) => fetchRss(s.value)))).flat().slice(0, 12);
+      meta.rss = rssItems.length;
+      refs = rssItems.map((i) => ({ url: i.link || null, label: i.title || null }));
+      signals = rssItems.length
+        ? `NOTÍCIAS:\n${rssItems.map((i, idx) => `[${idx}] ${i.title}`).join("\n")}`
+        : "NOTÍCIAS: (nenhuma; use conhecimento do setor)";
+    } else {
+      const comps = sources.filter((s) => s.kind === "competitor").slice(0, 5);
+      const acc = resolveIg(brand);
+      let compPosts: CompPost[] = [];
+      if (acc && comps.length) {
+        const batches = await Promise.all(
+          comps.map(async (c) => (await competitorTopPosts(acc, c.value, 2)).map((p) => ({ ...p, username: c.value })))
+        );
+        compPosts = batches.flat().sort((a, b) => b.likes + b.comments - (a.likes + a.comments)).slice(0, 8);
+      } else if (comps.length && !acc) {
+        warnings.push("sem conta IG conectada pra ler concorrentes");
+      }
+      meta.competitors = compPosts.length;
+      refs = compPosts.map((p) => ({ url: p.permalink ?? null, label: `@${p.username}` }));
+      signals = compPosts.length
+        ? `CONCORRENTES (o que engajou; inspiração de tema, não copiar):\n${compPosts
+            .map((p, idx) => `[${idx}] @${p.username} (${p.likes} curtidas): ${(p.caption || "").replace(/\s+/g, " ").slice(0, 140)}`)
+            .join("\n")}`
+        : "CONCORRENTES: (sem dados; proponha com base no posicionamento da marca)";
+    }
 
-  const noticias: Idea[] = results
-    .map((r) => {
-      const n = r.noticia;
-      if (!n?.legenda) return null;
-      const i = idxOf(n.fonte_idx, rssItems.length);
+    const results = (await Promise.all(analysts.map((a) => callAnalyst(cfg, a, brand, f, signals, feedback)))).filter(
+      Boolean
+    ) as { analista: string; idea: RawIdea }[];
+
+    return results.map(({ analista, idea }) => {
+      const i = idxOf(idea.fonte_idx, refs.length);
       return {
-        titulo: n.titulo,
-        angulo: n.angulo,
-        legenda: n.legenda,
-        formato: n.formato,
-        analista: r.analista,
-        imagem_prompt: n.imagem_prompt ?? null,
-        ref_url: i !== null ? rssItems[i].link || null : null,
-        ref_label: i !== null ? rssItems[i].title || null : null,
+        titulo: idea.titulo,
+        angulo: idea.angulo,
+        legenda: idea.legenda,
+        formato: idea.formato,
+        analista,
+        hashtags: norm(idea.hashtags),
+        imagem_prompt: idea.imagem_prompt ?? null,
+        ref_url: i !== null ? refs[i].url : null,
+        ref_label: i !== null ? refs[i].label : null,
       } as Idea;
-    })
-    .filter(Boolean) as Idea[];
+    });
+  }
 
-  const concorrentes: Idea[] = results
-    .map((r) => {
-      const c = r.concorrente;
-      if (!c?.legenda) return null;
-      const i = idxOf(c.fonte_idx, compPosts.length);
-      return {
-        titulo: c.titulo,
-        angulo: c.angulo,
-        legenda: c.legenda,
-        formato: c.formato,
-        analista: r.analista,
-        imagem_prompt: c.imagem_prompt ?? null,
-        ref_url: i !== null ? compPosts[i].permalink ?? null : null,
-        ref_label: i !== null ? `@${compPosts[i].username}` : null,
-      } as Idea;
-    })
-    .filter(Boolean) as Idea[];
+  const noticias = !fonte || fonte === "noticia" ? await genForFonte("noticia") : [];
+  const concorrentes = !fonte || fonte === "concorrente" ? await genForFonte("concorrente") : [];
 
   return {
     noticias,
     concorrentes,
     analysts: analysts.map((a) => ({ nome: a.nome, modelo: a.modelo || cfg.model })),
-    meta: { rss: rssItems.length, competitors: compPosts.length, warnings },
+    meta,
   };
 }
 
-/** id de marca -> resultado (usado pela rota). */
 export async function generateSuggestionsById(
   brandId: string,
   cfg: AiConfig,
-  feedback?: string
+  opts: { fonte?: Fonte; feedback?: string } = {}
 ): Promise<SuggestResult | null> {
   const brand = await getBrandById(brandId);
   if (!brand) return null;
-  return generateSuggestions(brand, cfg, feedback);
+  return generateSuggestions(brand, cfg, opts);
 }
