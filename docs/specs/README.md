@@ -20,6 +20,13 @@ Status vai sendo marcado aqui conforme entrega.
 |---|---|
 | 04 Tema light/dark | ✅ feito |
 | 05 Dashboard | ✅ feito |
-| 01 Relatórios | ⏳ próximo |
+| 02 Estúdio de legenda | ✅ feito (adaptar-por-rede pendente) |
+| 06 Sugestões v2 (abas + 2 colunas + editar) + Time (foto/organograma) | ⬜ |
+| 08 Navegação rail + submenu | ⬜ |
+| 07 Relatório de consumo (tokens/funcionário) | ⬜ |
+| 01 Relatórios de concorrentes | ⬜ |
 | 03 Mercado + insights | ⬜ |
-| 02 Estúdio de legenda | ⬜ |
+
+Extras entregues fora das specs originais: preview de post do Instagram
+realista (carrossel/reel), grade estilo IG, seleção em massa + logos nas redes/
+marcas, upload 413 corrigido, avatar/logo da marca.
