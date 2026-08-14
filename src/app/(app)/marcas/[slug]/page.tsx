@@ -6,6 +6,7 @@ import { listSources } from "@/server/sources";
 import { saveBrand, addSlot, removeSlot, addSourceAction, removeSourceAction } from "../actions";
 import { PageHeader, btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 import { Connections } from "@/components/connections";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,11 @@ export default async function EditBrandPage({
           </Link>
         }
       />
+
+      <div className="mb-6 max-w-2xl">
+        <label className={labelCls}>Logo da marca</label>
+        <BrandLogo brandId={b.id} slug={b.slug} logo={b.logo_url} igPicture={b.ig_picture} cor={b.cor_principal} nome={b.nome} />
+      </div>
 
       <form action={action} className="max-w-2xl space-y-6">
         <div className="grid gap-5 sm:grid-cols-2">

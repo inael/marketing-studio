@@ -79,6 +79,14 @@ export async function removeSourceAction(id: string, slug: string) {
   redirect(`/marcas/${slug}`);
 }
 
+export async function setBrandLogo(brandId: string, slug: string, url: string): Promise<{ ok: boolean }> {
+  await requireAuth();
+  await updateBrand(brandId, { logo_url: url });
+  revalidatePath("/marcas");
+  revalidatePath(`/marcas/${slug}`);
+  return { ok: true };
+}
+
 const GRAPH = "https://graph.facebook.com/v21.0";
 
 /** Busca a foto de perfil (e username) da conta IG de cada marca e salva.

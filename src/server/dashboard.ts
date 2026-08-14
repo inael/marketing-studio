@@ -1,5 +1,5 @@
 import { sql } from "./db";
-import { listAllBrands } from "./brands";
+import { listAllBrands, avatarOf } from "./brands";
 import { getSettings } from "./settings";
 import { resolveIg } from "./planner";
 
@@ -67,7 +67,7 @@ export async function dashboardSummary(): Promise<DashboardData> {
       cor: b.cor_principal,
       ig: Boolean(resolveIg(b)),
       linkedin: Boolean(b.linkedin_org_id),
-      picture: b.ig_picture,
+      picture: avatarOf(b),
     }));
 
   return {

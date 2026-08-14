@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listAllBrands } from "@/server/brands";
+import { listAllBrands, avatarOf } from "@/server/brands";
 import { PageHeader, btnGhost } from "@/components/ui";
 import { readableOn } from "@/lib/ui";
 import { refreshBrandPhotos } from "./actions";
@@ -39,10 +39,10 @@ export default async function MarcasPage() {
                 style={{ background: b.cor_principal }}
               />
               <div className="flex items-center gap-3">
-                {b.ig_picture ? (
+                {avatarOf(b) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={b.ig_picture}
+                    src={avatarOf(b)!}
                     alt=""
                     referrerPolicy="no-referrer"
                     className="h-10 w-10 shrink-0 rounded-full object-cover"
