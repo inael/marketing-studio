@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listBrands } from "@/server/brands";
-import { competitorReport, type AccountStats } from "@/server/reports";
+import { competitorReport, deriveMarket, type AccountStats } from "@/server/reports";
+import { MarketPanel } from "@/components/market-panel";
 import { PageHeader, Empty, btnPrimary } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +31,10 @@ function Bars({ data, labels }: { data: number[]; labels: string[] }) {
 export default async function RelatoriosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ brand?: string; days?: string; refresh?: string }>;
+  searchParams: Promise<{ brand?: string; days?: string; refresh?: string; view?: string }>;
 }) {
-  const { brand: brandSlug, days: daysRaw, refresh } = await searchParams;
+  const { brand: brandSlug, days: daysRaw, refresh, view } = await searchParams;
+  const isMercado = view === "mercado";
   const days = [7, 30, 90].includes(Number(daysRaw)) ? Number(daysRaw) : 30;
   const brands = await listBrands();
   if (brands.length === 0) {
@@ -48,7 +50,10 @@ export default async function RelatoriosPage({
   const err = "error" in result ? result.error : null;
   const report = "error" in result ? null : result;
 
-  const q = (b: string, d: number, r = false) => `/relatorios?brand=${b}&days=${d}${r ? "&refresh=1" : ""}`;
+  const q = (b: string, d: number, r = false) =>
+    `/relatorios?brand=${b}&days=${d}${isMercado ? "&view=mercado" : ""}${r ? "&refresh=1" : ""}`;
+  const tabCls = (on: boolean) =>
+    `rounded-md border px-3 py-1 text-xs transition-colors ${on ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"}`;
   const rows: AccountStats[] = report ? [report.self, ...report.competitors].filter(Boolean).map((s) => s as AccountStats) : [];
   const comps = report?.competitors ?? [];
   const weekAgg = WEEK.map((_, i) => comps.reduce((s, c) => s + (c.byWeekday[i] ?? 0), 0));
@@ -75,18 +80,27 @@ export default async function RelatoriosPage({
             </Link>
           ))}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {[7, 30, 90].map((d) => (
-            <Link key={d} href={q(active.slug, d)} className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${days === d ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"}`}>
+            <Link key={d} href={q(active.slug, d)} className={tabCls(days === d)}>
               {d} dias
             </Link>
           ))}
+          <span className="mx-1 text-line2">|</span>
+          <Link href={`/relatorios?brand=${active.slug}&days=${days}`} className={tabCls(!isMercado)}>
+            Concorrentes
+          </Link>
+          <Link href={`/relatorios?brand=${active.slug}&days=${days}&view=mercado`} className={tabCls(isMercado)}>
+            Mercado
+          </Link>
         </div>
       </div>
 
       {err ? (
         <p className="rounded-md border border-bad/30 bg-bad/5 px-3 py-2 text-sm text-bad">{err}</p>
-      ) : !report ? null : (
+      ) : !report ? null : isMercado ? (
+        <MarketPanel brandId={active.id} metrics={deriveMarket(report)} />
+      ) : (
         <div className="space-y-8">
           {/* tabela comparativa */}
           <section className="overflow-x-auto">

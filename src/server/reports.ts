@@ -136,6 +136,35 @@ async function fetchStats(
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+export type MarketMetric = {
+  key: string;
+  label: string;
+  unit: string;
+  self: number;
+  market: number;
+  delta: number; // % vs mercado
+  higherBetter: boolean;
+};
+
+/** Deriva o comparativo perfil × média do mercado (concorrentes) — sem nova chamada de API. */
+export function deriveMarket(report: Report): MarketMetric[] {
+  const self = report.self;
+  const comps = report.competitors.filter((c) => !c.error && c.followers > 0);
+  const avg = (f: (c: AccountStats) => number) => (comps.length ? comps.reduce((s, c) => s + f(c), 0) / comps.length : 0);
+  const metric = (key: string, label: string, unit: string, f: (c: AccountStats) => number, higherBetter = true): MarketMetric => {
+    const s = self ? f(self) : 0;
+    const m = avg(f);
+    return { key, label, unit, self: s, market: m, delta: m ? ((s - m) / m) * 100 : 0, higherBetter };
+  };
+  return [
+    metric("engajamento", "Taxa de engajamento", "%", (c) => c.engajamento),
+    metric("avgInter", "Média de interação por post", "", (c) => c.avgInter),
+    metric("posts", "Nº de posts no período", "", (c) => c.posts),
+    metric("postsPerWeek", "Frequência (posts/semana)", "", (c) => c.postsPerWeek),
+    metric("followers", "Seguidores", "", (c) => c.followers),
+  ];
+}
+
 export async function competitorReport(brandId: string, days = 30, force = false): Promise<Report | { error: string }> {
   const brand = await getBrandById(brandId);
   if (!brand) return { error: "marca inválida" };
