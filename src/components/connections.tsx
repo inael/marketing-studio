@@ -86,15 +86,15 @@ export function Connections({ brandId, brandSlug, igConnected, linkedinConnected
                   ) : (
                     <span className="text-xs text-faint">pronto para publicar</span>
                   )
-                ) : n.key === "instagram" ? (
+                ) : n.key === "instagram" || n.key === "linkedin" ? (
                   <div className="flex items-center gap-2">
                     <a
-                      href={`/api/connections/instagram/start?brand=${brandSlug}`}
+                      href={`/api/connections/${n.key}/start?brand=${brandSlug}`}
                       className="rounded-md bg-ink px-3 py-1 text-xs font-medium text-canvas transition-colors hover:bg-white"
                     >
                       Conectar
                     </a>
-                    <a href="#ig-fields" className="text-[11px] text-faint hover:text-dim">
+                    <a href={anchor(n.key)} className="text-[11px] text-faint hover:text-dim">
                       ou colar token
                     </a>
                   </div>

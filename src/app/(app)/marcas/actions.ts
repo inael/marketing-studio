@@ -96,3 +96,22 @@ export async function finalizeInstagram(
   revalidatePath(`/marcas/${slug}`);
   redirect(`/marcas/${slug}`);
 }
+
+export async function finalizeLinkedin(
+  brandId: string,
+  slug: string,
+  sessionId: string,
+  orgId: string
+) {
+  await requireAuth();
+  const session = await getOauthSession(sessionId);
+  const org = session?.orgs?.find((o: { orgId: string }) => o.orgId === orgId) as
+    | { orgId: string; token: string }
+    | undefined;
+  if (org) {
+    await updateBrand(brandId, { linkedin_org_id: org.orgId, linkedin_token: org.token });
+    await deleteOauthSession(sessionId);
+  }
+  revalidatePath(`/marcas/${slug}`);
+  redirect(`/marcas/${slug}`);
+}

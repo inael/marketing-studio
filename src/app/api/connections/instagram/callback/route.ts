@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const sessionId = await createOauthSession("instagram", { slug, accounts });
+    const sessionId = await createOauthSession("instagram", { kind: "instagram", slug, accounts });
     return NextResponse.redirect(`${base}/marcas/${slug}/conectar?s=${sessionId}`);
   } catch (e) {
     return htmlClose(`Erro ao conectar: ${e instanceof Error ? e.message : String(e)}`);
