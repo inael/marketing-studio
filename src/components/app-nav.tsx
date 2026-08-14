@@ -59,6 +59,16 @@ const ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    href: "/relatorios",
+    label: "Relatórios",
+    icon: (
+      <>
+        <path d="M4 20V4M4 20h16" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M8 16v-4M12 16V8M16 16v-6" strokeWidth="1.6" strokeLinecap="round" />
+      </>
+    ),
+  },
+  {
     href: "/time",
     label: "Time",
     icon: (
