@@ -29,8 +29,34 @@ export async function getPost(id: string): Promise<Post | null> {
 
 export async function listPosts(brandId?: string): Promise<Post[]> {
   return brandId
-    ? sql<Post[]>`select * from posts where brand_id=${brandId} order by created_at desc`
-    : sql<Post[]>`select * from posts order by created_at desc`;
+    ? sql<Post[]>`select * from posts where brand_id=${brandId} and deleted_at is null order by created_at desc`
+    : sql<Post[]>`select * from posts where deleted_at is null order by created_at desc`;
+}
+
+/** exclusão reversível (mantém a linha pra contabilizar "excluídos"). */
+export async function softDeletePost(id: string): Promise<void> {
+  await sql`update posts set deleted_at = now(), updated_at = now() where id = ${id}`;
+}
+
+export type Analytics = {
+  deleted: number;
+  ranking: { analista: string; total: number; publicados: number }[];
+};
+
+/** ranking de posts por funcionário (analista) + quantos posts foram excluídos. */
+export async function postsAnalytics(): Promise<Analytics> {
+  const [{ deleted }] = await sql<{ deleted: number }[]>`
+    select count(*)::int as deleted from posts where deleted_at is not null`;
+  const ranking = await sql<{ analista: string; total: number; publicados: number }[]>`
+    select
+      coalesce(analista, 'sem autor') as analista,
+      count(*)::int as total,
+      count(*) filter (where status = 'published')::int as publicados
+    from posts
+    where deleted_at is null and analista is not null
+    group by 1
+    order by total desc`;
+  return { deleted, ranking };
 }
 
 export async function createPost(i: {
@@ -82,6 +108,7 @@ export async function listTodayAutoDrafts(brandId: string): Promise<Post[]> {
     where brand_id = ${brandId}
       and origem = 'auto'
       and status = 'draft'
+      and deleted_at is null
       and created_at >= date_trunc('day', now() at time zone 'America/Sao_Paulo')
     order by created_at asc`;
 }
@@ -91,6 +118,7 @@ export async function listDueScheduled(nowISO: string): Promise<Post[]> {
   return sql<Post[]>`
     select * from posts
     where status = 'scheduled' and scheduled_at is not null and scheduled_at <= ${nowISO}
+      and deleted_at is null
     order by scheduled_at asc
     limit 25`;
 }

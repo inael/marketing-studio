@@ -1,6 +1,6 @@
 "use server";
 
-import { setPostStatus, deletePost } from "@/server/posts";
+import { setPostStatus, softDeletePost } from "@/server/posts";
 import { publishPost } from "@/server/publish";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
@@ -27,6 +27,6 @@ export async function publishPostAction(id: string): Promise<void> {
 
 export async function removePost(id: string): Promise<void> {
   await requireAuth();
-  await deletePost(id);
+  await softDeletePost(id);
   revalidatePath("/posts");
 }
