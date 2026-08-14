@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPostAction, type CreateInput } from "@/app/(app)/criar/actions";
-import { readableOn } from "@/lib/ui";
+import { InstagramPreview } from "@/components/instagram-preview";
 import { btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 import { IMAGE_MODELS } from "@/lib/models";
 
@@ -327,71 +327,14 @@ export function CreateForm({ brands }: { brands: BrandLite[] }) {
       {/* Preview ao vivo */}
       <div className="lg:sticky lg:top-8 lg:self-start">
         <p className="mb-3 text-xs font-medium uppercase tracking-wide text-faint">Preview</p>
-        <div className="overflow-hidden rounded-xl border border-line bg-panel">
-          <div className="flex items-center gap-2.5 px-3 py-2.5">
-            <span
-              className="grid h-8 w-8 place-items-center rounded-full text-[11px] font-semibold"
-              style={{ background: brand?.cor_principal, color: readableOn(brand?.cor_principal ?? "#000") }}
-            >
-              {(brand?.slug[0] ?? "?").toUpperCase()}
-            </span>
-            <span className="text-sm font-medium text-ink">{brand?.slug ?? "marca"}</span>
-          </div>
-          <div className="aspect-square w-full bg-panel2">
-            {media[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={media[0]} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-xs text-faint">
-                sua imagem aparece aqui
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-4 px-3 pt-3 text-dim">
-            <HeartIcon />
-            <CommentIcon />
-            <ShareIcon />
-            {media.length > 1 && (
-              <span className="ml-auto font-mono text-[11px] text-faint">1/{media.length}</span>
-            )}
-          </div>
-          <div className="px-3 pb-4 pt-2 text-sm leading-relaxed">
-            {(legenda || tags.length > 0) ? (
-              <p className="whitespace-pre-wrap break-words text-ink">
-                <span className="font-semibold">{brand?.slug} </span>
-                {legenda}
-                {tags.length > 0 && (
-                  <span className="text-info"> {tags.map((t) => `#${t}`).join(" ")}</span>
-                )}
-              </p>
-            ) : (
-              <p className="text-faint">a legenda aparece aqui</p>
-            )}
-          </div>
-        </div>
+        <InstagramPreview
+          username={brand?.slug ?? "marca"}
+          cor={brand?.cor_principal ?? "#000"}
+          media={media}
+          legenda={legenda}
+          hashtags={tags}
+        />
       </div>
     </div>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-6 w-6">
-      <path d="M12 20s-7-4.35-9.5-8.5C1 8.5 2.5 5.5 5.5 5.5c2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3 3 0 4.5 3 3 6C19 15.65 12 20 12 20z" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function CommentIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-6 w-6">
-      <path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function ShareIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-6 w-6">
-      <path d="M22 3 11 14M22 3l-7 18-4-8-8-4 19-6z" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
   );
 }

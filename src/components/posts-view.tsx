@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Post, Analytics } from "@/server/posts";
 import { approvePost, publishPostAction, removePost } from "@/app/(app)/posts/actions";
 import { StatusBadge } from "@/components/ui";
-import { readableOn } from "@/lib/ui";
+import { InstagramPreview } from "@/components/instagram-preview";
 import { TIPO, FORMATO, STATUS, fmtDate, type StatusKey } from "@/lib/ui";
 
 type BrandLite = { id: string; slug: string; nome: string; cor_principal: string };
@@ -202,33 +202,35 @@ export function PostsView({
           Nenhum post com esses filtros.
         </p>
       ) : view === "grade" ? (
-        <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 lg:grid-cols-5">
-          {filtered.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setOpenId(p.id)}
-              className="group relative aspect-square overflow-hidden bg-panel2"
-              title={p.legenda}
-            >
-              {p.media[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.media[0]} alt="" className="h-full w-full object-cover" loading="lazy" />
-              ) : (
-                <span className="grid h-full w-full place-items-center px-2 text-center text-[10px] text-faint">
-                  {p.legenda?.slice(0, 40) || "sem mídia"}
-                </span>
-              )}
-              <span
-                className="absolute left-1 top-1 h-2.5 w-2.5 rounded-full ring-2 ring-black/40"
-                style={{ background: STATUS[p.status as StatusKey]?.dot ?? "#888" }}
-                title={STATUS[p.status as StatusKey]?.label}
-              />
-              <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
-                @{byId.get(p.brand_id)?.slug}
-              </span>
-            </button>
-          ))}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((p) => {
+            const b = byId.get(p.brand_id);
+            const st = STATUS[p.status as StatusKey];
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setOpenId(p.id)}
+                title={p.legenda}
+                className="block text-left transition-transform hover:-translate-y-0.5"
+              >
+                <InstagramPreview
+                  compact
+                  username={b?.slug ?? "?"}
+                  cor={b?.cor_principal ?? "#000"}
+                  media={p.media}
+                  legenda={p.legenda}
+                  hashtags={p.hashtags}
+                  badge={
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-1.5 py-0.5 text-[10px] text-dim">
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: st?.dot ?? "#888" }} />
+                      {st?.label ?? p.status}
+                    </span>
+                  }
+                />
+              </button>
+            );
+          })}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -332,37 +334,14 @@ export function PostsView({
             onClick={(e) => e.stopPropagation()}
           >
             {/* preview IG */}
-            <div className="overflow-hidden rounded-xl border border-line bg-panel">
-              <div className="flex items-center gap-2.5 px-3 py-2.5">
-                <span
-                  className="grid h-8 w-8 place-items-center rounded-full text-[11px] font-semibold"
-                  style={{
-                    background: byId.get(open.brand_id)?.cor_principal,
-                    color: readableOn(byId.get(open.brand_id)?.cor_principal ?? "#000"),
-                  }}
-                >
-                  {(byId.get(open.brand_id)?.slug[0] ?? "?").toUpperCase()}
-                </span>
-                <span className="text-sm font-medium text-ink">{byId.get(open.brand_id)?.slug}</span>
-              </div>
-              <div className="aspect-square w-full bg-panel2">
-                {open.media[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={open.media[0]} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="grid h-full w-full place-items-center text-xs text-faint">sem mídia</div>
-                )}
-              </div>
-              <div className="px-3 pb-4 pt-3 text-sm leading-relaxed">
-                <p className="whitespace-pre-wrap break-words text-ink">
-                  <span className="font-semibold">{byId.get(open.brand_id)?.slug} </span>
-                  {open.legenda}
-                  {open.hashtags?.length > 0 && (
-                    <span className="text-info"> {open.hashtags.map((t) => `#${t}`).join(" ")}</span>
-                  )}
-                </p>
-              </div>
-            </div>
+            <InstagramPreview
+              username={byId.get(open.brand_id)?.slug ?? "?"}
+              cor={byId.get(open.brand_id)?.cor_principal ?? "#000"}
+              media={open.media}
+              legenda={open.legenda}
+              hashtags={open.hashtags}
+              time={open.scheduled_at ? fmtDate(open.scheduled_at) : undefined}
+            />
 
             {/* metadados */}
             <div className="flex flex-col gap-3 text-sm">
