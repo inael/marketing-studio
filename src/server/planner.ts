@@ -94,7 +94,7 @@ async function callAnalyst(
     a.tracos || "equilibrado"
   }. Skills: ${a.skills || "geral"}. ${a.instrucoes} Tom de voz da marca: ${
     brand.tom_voz || "profissional e claro"
-  }. Com base nos SINAIS (cada item vem numerado [n]), proponha 1 ideia de post inspirada nas NOTÍCIAS e 1 inspirada nos CONCORRENTES, no SEU estilo. Regras: conecte ao que a marca faz; NUNCA copie a legenda do concorrente; legenda pronta em pt-BR, 1-3 frases, sem hashtags, sem travessão. Em "fonte_idx" devolva o número [n] do item que você usou. Em "imagem_prompt" escreva, EM INGLÊS, um prompt curto e realista pra gerar a imagem do post (foto editorial, sem texto, sem cara de IA, nada de roxo/neon).${
+  }. Com base nos SINAIS (cada item vem numerado [n]), proponha 1 ideia de post inspirada nas NOTÍCIAS e 1 inspirada nos CONCORRENTES, no SEU estilo. Regras: conecte ao que a marca faz; NUNCA copie a legenda do concorrente; legenda pronta em pt-BR, 1-3 frases, sem hashtags, sem travessão. Em "fonte_idx" devolva o número [n] do item que você usou. Em "imagem_prompt" escreva EM PORTUGUÊS um prompt curto e realista pra gerar a imagem do post (foto editorial, sem texto, sem cara de IA, nada de roxo/neon), de forma que qualquer pessoa entenda a cena.${
     feedback ? ` Feedback do gestor pra melhorar: ${feedback}` : ""
   } Responda SOMENTE JSON: {"noticia":{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","fonte_idx":0,"imagem_prompt":""},"concorrente":{"titulo":"","angulo":"","legenda":"","formato":"image|carousel|reel","fonte_idx":0,"imagem_prompt":""}}.`;
   const parsed = (await chatJson(cfg, model, sys, signals)) as {
