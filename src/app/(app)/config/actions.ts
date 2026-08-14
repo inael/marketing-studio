@@ -35,6 +35,10 @@ export async function saveConfig(formData: FormData) {
   const ev = str(formData, "elevenlabs_voice_id");
   patch.elevenlabs_voice_id = ev;
 
+  // automação (checkbox: ausente = desligado)
+  patch.automacao_ativa = formData.get("automacao_ativa") === "on" ? "on" : "off";
+  patch.automacao_gestor = formData.get("automacao_gestor") === "on" ? "on" : "off";
+
   await setSettings(patch);
   revalidatePath("/config");
   redirect("/config?ok=1");

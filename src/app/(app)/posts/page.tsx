@@ -109,6 +109,11 @@ export default async function PostsPage({
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-faint">
                     <span className="font-mono">@{b?.slug ?? "?"}</span>
+                    {p.origem === "auto" && (
+                      <span className="rounded-full border border-info/40 px-1.5 py-0.5 text-[10px] text-info" title="Gerado automaticamente pelo time">
+                        ✦ time
+                      </span>
+                    )}
                     <span>·</span>
                     <span>{TIPO[p.tipo] ?? p.tipo}</span>
                     <span>·</span>

@@ -151,6 +151,38 @@ export default async function ConfigPage({
           </div>
         </section>
 
+        {/* Automação */}
+        <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Automação (piloto automático)</h2>
+            <p className="mt-1 text-xs text-dim">
+              Deixe o time trabalhar sozinho. Você mantém o controle: nada é publicado sem que você
+              ligue explicitamente o gestor.
+            </p>
+          </div>
+          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line bg-panel2 p-4 has-[:checked]:border-line2">
+            <input type="checkbox" name="automacao_ativa" defaultChecked={s.automacao_ativa === "on"} className="mt-0.5 accent-ink" />
+            <span>
+              <span className="block text-sm text-ink">Sugestões automáticas toda manhã (8h)</span>
+              <span className="mt-0.5 block text-xs text-dim">
+                Todo dia às 8h o time gera até 3 rascunhos por marca (com base em notícias e
+                concorrentes). Você abre Posts e só aprova. Não publica nada sozinho.
+              </span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line bg-panel2 p-4 has-[:checked]:border-line2">
+            <input type="checkbox" name="automacao_gestor" defaultChecked={s.automacao_gestor === "on"} className="mt-0.5 accent-ink" />
+            <span>
+              <span className="block text-sm text-ink">Gestor aprova e publica sozinho (9h)</span>
+              <span className="mt-0.5 block text-xs text-dim">
+                Se às 9h você ainda não aprovou, o gestor escolhe o melhor rascunho do dia
+                <strong> que já tenha imagem</strong> e publica. Rascunhos sem imagem ficam esperando
+                você. Exige as “Sugestões automáticas” ligadas.
+              </span>
+            </span>
+          </label>
+        </section>
+
         <button type="submit" className={btnPrimary}>
           Salvar configurações
         </button>

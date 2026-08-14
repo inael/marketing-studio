@@ -13,6 +13,7 @@ export type Post = {
   scheduled_at: string | null;
   status: PostStatus;
   external_url: string | null;
+  origem: "manual" | "auto";
 };
 
 export async function getPost(id: string): Promise<Post | null> {
@@ -35,6 +36,7 @@ export async function createPost(i: {
   media: string[];
   scheduled_at?: string | null;
   status?: PostStatus;
+  origem?: Post["origem"];
 }): Promise<Post> {
   const row = {
     brand_id: i.brand_id,
@@ -45,6 +47,7 @@ export async function createPost(i: {
     media: i.media,
     scheduled_at: i.scheduled_at ?? null,
     status: i.status ?? "draft",
+    origem: i.origem ?? "manual",
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [p] = await sql<Post[]>`insert into posts ${sql(row as any)} returning *`;
@@ -54,6 +57,17 @@ export async function createPost(i: {
 export async function deletePost(id: string): Promise<void> {
   await sql`delete from publish_logs where post_id = ${id}`;
   await sql`delete from posts where id = ${id}`;
+}
+
+/** rascunhos criados pela automação (origem=auto) ainda parados hoje, por marca */
+export async function listTodayAutoDrafts(brandId: string): Promise<Post[]> {
+  return sql<Post[]>`
+    select * from posts
+    where brand_id = ${brandId}
+      and origem = 'auto'
+      and status = 'draft'
+      and created_at >= date_trunc('day', now() at time zone 'America/Sao_Paulo')
+    order by created_at asc`;
 }
 
 /** posts agendados cujo horário já venceu (pro cron publicar) */
