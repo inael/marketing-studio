@@ -280,12 +280,30 @@ export default async function EditBrandPage({
               <span className="text-sm text-faint">Nenhum concorrente ainda.</span>
             )}
             {competitors.map((s) => (
-              <form key={s.id} action={removeSourceAction.bind(null, s.id, b.slug)}>
-                <button className="group inline-flex items-center gap-2 rounded-full border border-line bg-panel2 px-3 py-1.5 text-xs text-dim transition-colors hover:border-bad/50 hover:text-bad">
-                  <span className="font-mono">@{s.value}</span>
-                  <span aria-hidden>×</span>
-                </button>
-              </form>
+              <span
+                key={s.id}
+                className="inline-flex items-center gap-2 rounded-full border border-line bg-panel2 px-3 py-1.5 text-xs"
+              >
+                <a
+                  href={`https://instagram.com/${s.value}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Abrir no Instagram"
+                  className="font-mono text-dim transition-colors hover:text-info hover:underline"
+                >
+                  @{s.value}
+                </a>
+                <form action={removeSourceAction.bind(null, s.id, b.slug)} className="flex">
+                  <button
+                    type="submit"
+                    title="Remover concorrente"
+                    aria-label="Remover concorrente"
+                    className="text-faint transition-colors hover:text-bad"
+                  >
+                    ×
+                  </button>
+                </form>
+              </span>
             ))}
           </div>
           <form action={addSourceAction.bind(null, b.id, b.slug)} className="mt-2 flex gap-2">

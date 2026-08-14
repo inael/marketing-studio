@@ -3,6 +3,7 @@ import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { getAiConfig } from "@/server/settings";
 import { generateSuggestionsById } from "@/server/planner";
+import { addSuggestions } from "@/server/suggestions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,5 +26,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "o time não conseguiu montar sugestões, tente de novo" }, { status: 502 });
   }
 
-  return NextResponse.json(result);
+  // persiste — as sugestões ficam salvas mesmo se o usuário trocar de menu
+  const [noticias, concorrentes] = await Promise.all([
+    addSuggestions(body.brand_id, "noticia", result.noticias),
+    addSuggestions(body.brand_id, "concorrente", result.concorrentes),
+  ]);
+
+  return NextResponse.json({ noticias, concorrentes, analysts: result.analysts, meta: result.meta });
 }

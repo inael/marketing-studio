@@ -1,48 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createDraftFromSuggestion } from "@/app/(app)/sugestoes/actions";
+import {
+  acceptSuggestion,
+  dismissSuggestion,
+  dismissSuggestions,
+  clearBrandSuggestions,
+} from "@/app/(app)/sugestoes/actions";
 import { TIPO } from "@/lib/ui";
-import { btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
+import { btnPrimary, btnGhost } from "@/components/ui";
 
 type BrandLite = { id: string; slug: string; nome: string; cor_principal: string };
 type Suggestion = {
-  titulo: string;
-  angulo: string;
+  id: string;
+  brand_id: string;
+  grupo: "noticia" | "concorrente";
+  titulo: string | null;
+  angulo: string | null;
   legenda: string;
-  formato: string;
-  analista?: string;
-  saved?: boolean;
-  saving?: boolean;
+  formato: string | null;
+  analista: string | null;
+  ref_url: string | null;
+  ref_label: string | null;
+  imagem_prompt: string | null;
+  status: string;
+  created_at: string;
 };
-type Grupo = "noticias" | "concorrentes";
 type Meta = { rss: number; competitors: number; warnings?: string[] };
 type Escolha = { titulo: string; por_que: string };
 type Verdict = { gestor: string; escolhas: Escolha[]; ajustes: string; feedback_time: string };
 
-export function Suggestions({ brands }: { brands: BrandLite[] }) {
+const PHRASES = [
+  "lendo as notícias",
+  "analisando os concorrentes",
+  "pensando no ângulo",
+  "escrevendo a legenda",
+  "revisando o tom de voz",
+  "imaginando a imagem",
+];
+
+export function Suggestions({
+  brands,
+  initial,
+  analystNames,
+}: {
+  brands: BrandLite[];
+  initial: Suggestion[];
+  analystNames: string[];
+}) {
   const [brandId, setBrandId] = useState(brands[0]?.id ?? "");
+  const [items, setItems] = useState<Suggestion[]>(initial);
   const [loading, setLoading] = useState(false);
-  const [noticias, setNoticias] = useState<Suggestion[]>([]);
-  const [concorrentes, setConcorrentes] = useState<Suggestion[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [gestorBusy, setGestorBusy] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   const brand = brands.find((b) => b.id === brandId);
-  const setter = (g: Grupo) => (g === "noticias" ? setNoticias : setConcorrentes);
-  const patch = (g: Grupo, i: number, p: Partial<Suggestion>) =>
-    setter(g)((s) => s.map((x, j) => (j === i ? { ...x, ...p } : x)));
+  const brandItems = items.filter((s) => s.brand_id === brandId);
+  const noticias = brandItems.filter((s) => s.grupo === "noticia");
+  const concorrentes = brandItems.filter((s) => s.grupo === "concorrente");
+
+  // status ao vivo: "fulano está ..." passando enquanto gera
+  useEffect(() => {
+    if (!loading) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1400);
+    return () => clearInterval(id);
+  }, [loading]);
+
+  const names = analystNames.length ? analystNames : ["O time"];
+  const liveStatus = `${names[tick % names.length]} está ${PHRASES[tick % PHRASES.length]}…`;
 
   async function gerar(feedback?: string) {
     if (!brand) return setError("Selecione uma marca.");
     setError(null);
     setLoading(true);
-    setNoticias([]);
-    setConcorrentes([]);
-    setMeta(null);
     setVerdict(null);
     try {
       const r = await fetch("/api/ai/suggest", {
@@ -52,8 +88,8 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "falhou");
-      setNoticias((data.noticias ?? []) as Suggestion[]);
-      setConcorrentes((data.concorrentes ?? []) as Suggestion[]);
+      const novas: Suggestion[] = [...(data.noticias ?? []), ...(data.concorrentes ?? [])];
+      setItems((prev) => [...novas, ...prev]);
       setMeta(data.meta as Meta);
     } catch (e) {
       setError(e instanceof Error ? e.message : "falhou");
@@ -62,17 +98,59 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
     }
   }
 
-  async function criarRascunho(g: Grupo, i: number) {
-    if (!brand) return;
-    const list = g === "noticias" ? noticias : concorrentes;
-    const sc = list[i];
-    patch(g, i, { saving: true });
-    const res = await createDraftFromSuggestion({ brand_id: brand.id, legenda: sc.legenda, tipo: sc.formato });
-    if (res.ok) patch(g, i, { saving: false, saved: true });
-    else {
-      patch(g, i, { saving: false });
-      setError(res.error);
+  const withBusy = async (id: string, fn: () => Promise<void>) => {
+    setBusy((s) => new Set(s).add(id));
+    try {
+      await fn();
+    } finally {
+      setBusy((s) => {
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
     }
+  };
+
+  async function aceitar(id: string) {
+    await withBusy(id, async () => {
+      const res = await acceptSuggestion(id);
+      if (res.ok) setItems((prev) => prev.filter((s) => s.id !== id));
+      else setError(res.error);
+    });
+  }
+
+  async function apagar(id: string) {
+    await withBusy(id, async () => {
+      await dismissSuggestion(id);
+      setItems((prev) => prev.filter((s) => s.id !== id));
+    });
+  }
+
+  async function apagarSelecionadas() {
+    const ids = [...selected];
+    if (!ids.length) return;
+    await dismissSuggestions(ids);
+    setItems((prev) => prev.filter((s) => !selected.has(s.id)));
+    setSelected(new Set());
+  }
+
+  async function limparMarca() {
+    if (!brand) return;
+    await clearBrandSuggestions(brand.id);
+    setItems((prev) => prev.filter((s) => s.brand_id !== brand.id));
+    setSelected(new Set());
+  }
+
+  function toggle(id: string) {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+  function selecionarTodas() {
+    setSelected(new Set(brandItems.map((s) => s.id)));
   }
 
   async function ativarGestor() {
@@ -95,46 +173,78 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
     }
   }
 
-  const card = (g: Grupo) => (s: Suggestion, i: number) => (
-    <div key={i} className="flex flex-col rounded-lg border border-line bg-panel p-4">
+  const card = (s: Suggestion) => (
+    <div key={s.id} className="flex flex-col rounded-lg border border-line bg-panel p-4">
       <div className="flex items-start justify-between gap-2">
-        <div className="text-sm font-medium text-ink">{s.titulo}</div>
-        <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[11px] text-faint">
-          {TIPO[s.formato] ?? s.formato}
-        </span>
-      </div>
-      {s.analista && <div className="mt-0.5 text-[11px] text-info">por {s.analista}</div>}
-      {s.angulo && <p className="mt-1.5 text-xs text-dim">{s.angulo}</p>}
-      <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{s.legenda}</p>
-      <div className="mt-auto flex items-center gap-2 pt-3">
-        {s.saved ? (
-          <>
-            <span className="text-xs text-ok">rascunho criado</span>
-            <Link href="/posts" className="text-xs text-info hover:underline">
-              ver em Posts
-            </Link>
-          </>
-        ) : (
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={selected.has(s.id)}
+            onChange={() => toggle(s.id)}
+            className="mt-1 accent-ink"
+          />
+          <span className="text-sm font-medium text-ink">{s.titulo || "Ideia"}</span>
+        </label>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-faint">
+            {TIPO[s.formato ?? "image"] ?? s.formato}
+          </span>
           <button
             type="button"
-            onClick={() => criarRascunho(g, i)}
-            disabled={s.saving}
-            className="rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-ink disabled:opacity-50"
+            onClick={() => apagar(s.id)}
+            disabled={busy.has(s.id)}
+            title="Apagar sugestão"
+            className="grid h-6 w-6 place-items-center rounded-full text-faint transition-colors hover:bg-panel2 hover:text-bad disabled:opacity-40"
           >
-            {s.saving ? "criando…" : "Aceitar e criar rascunho"}
+            ×
           </button>
-        )}
+        </div>
+      </div>
+
+      {s.analista && <div className="mt-0.5 pl-6 text-[11px] text-info">por {s.analista}</div>}
+      {s.angulo && <p className="mt-1.5 text-xs text-dim">{s.angulo}</p>}
+      <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{s.legenda}</p>
+
+      {s.ref_url && (
+        <a
+          href={s.ref_url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-1 text-xs text-info hover:underline"
+        >
+          {s.grupo === "noticia" ? "ver notícia original" : `ver post de ${s.ref_label ?? "concorrente"}`} ↗
+        </a>
+      )}
+      {s.grupo === "noticia" && s.ref_label && (
+        <p className="mt-1 line-clamp-2 text-[11px] text-faint">{s.ref_label}</p>
+      )}
+
+      {s.imagem_prompt && (
+        <details className="mt-3 rounded-md border border-line bg-panel2/40 p-2">
+          <summary className="cursor-pointer text-[11px] text-dim">prompt da imagem (IA)</summary>
+          <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-faint">{s.imagem_prompt}</p>
+        </details>
+      )}
+
+      <div className="mt-auto flex items-center gap-2 pt-3">
+        <button
+          type="button"
+          onClick={() => aceitar(s.id)}
+          disabled={busy.has(s.id)}
+          className="rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:border-ok/50 hover:text-ok disabled:opacity-50"
+        >
+          {busy.has(s.id) ? "criando…" : "Aceitar e criar rascunho"}
+        </button>
       </div>
     </div>
   );
 
-  const hasResults = noticias.length > 0 || concorrentes.length > 0;
-
   return (
     <div className="space-y-6">
+      {/* controles */}
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <label className={labelCls}>Marca</label>
+          <div className="mb-1.5 text-xs font-medium text-dim">Marca</div>
           <div className="flex flex-wrap gap-2">
             {brands.map((b) => (
               <button
@@ -156,84 +266,119 @@ export function Suggestions({ brands }: { brands: BrandLite[] }) {
         </button>
       </div>
 
+      {loading && (
+        <p className="animate-pulse rounded-md border border-info/30 bg-info/5 px-3 py-2 text-sm text-info">
+          {liveStatus}
+        </p>
+      )}
       {error && <p className="rounded-md border border-bad/30 bg-bad/5 px-3 py-2 text-sm text-bad">{error}</p>}
-
-      {meta && (
+      {meta && !loading && (
         <p className="text-xs text-faint">
-          Baseado em {meta.rss} notícia(s) e {meta.competitors} post(s) de concorrentes.
+          Última geração: {meta.rss} notícia(s) e {meta.competitors} post(s) de concorrentes.
           {meta.warnings?.length ? ` (${meta.warnings.join("; ")})` : ""}
         </p>
       )}
 
-      {hasResults && (
-        <div className="space-y-8">
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-ink">
-              Ideias das notícias <span className="text-faint">({noticias.length})</span>
-            </h2>
-            <div className="grid gap-3 md:grid-cols-3">{noticias.map(card("noticias"))}</div>
-          </section>
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-ink">
-              Ideias dos concorrentes <span className="text-faint">({concorrentes.length})</span>
-            </h2>
-            <div className="grid gap-3 md:grid-cols-3">{concorrentes.map(card("concorrentes"))}</div>
-          </section>
-
-          <section className="rounded-lg border border-line bg-panel/50 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* GESTOR no topo */}
+      <section className="rounded-lg border border-line bg-panel/50 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Gestor</h2>
+            <p className="mt-0.5 text-xs text-dim">
+              Revisa as ideias do time desta marca, escolhe as melhores e dá feedback.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={ativarGestor}
+            disabled={gestorBusy || brandItems.length === 0}
+            className={btnGhost}
+          >
+            {gestorBusy ? "gestor analisando…" : "Ativar gestor"}
+          </button>
+        </div>
+        {verdict && (
+          <div className="mt-4 space-y-4 text-sm">
+            <div className="text-xs text-info">Análise de {verdict.gestor}</div>
+            {verdict.escolhas?.length > 0 && (
               <div>
-                <h2 className="text-sm font-semibold text-ink">Gestor</h2>
-                <p className="mt-0.5 text-xs text-dim">
-                  Ative o gestor pra revisar as ideias do time, escolher as melhores e dar feedback.
-                </p>
-              </div>
-              {!verdict && (
-                <button type="button" onClick={ativarGestor} disabled={gestorBusy} className={btnGhost}>
-                  {gestorBusy ? "gestor analisando…" : "Ativar gestor"}
-                </button>
-              )}
-            </div>
-
-            {verdict && (
-              <div className="mt-4 space-y-4 text-sm">
-                <div className="text-xs text-info">Análise de {verdict.gestor}</div>
-                {verdict.escolhas.length > 0 && (
-                  <div>
-                    <div className="text-xs font-medium text-faint">Escolhas do gestor</div>
-                    <ul className="mt-1 space-y-1">
-                      {verdict.escolhas.map((e, i) => (
-                        <li key={i} className="text-ink">
-                          <span className="font-medium">{e.titulo}</span>
-                          {e.por_que && <span className="text-dim"> — {e.por_que}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {verdict.ajustes && (
-                  <div>
-                    <div className="text-xs font-medium text-faint">Ajustes sugeridos</div>
-                    <p className="mt-1 whitespace-pre-wrap text-dim">{verdict.ajustes}</p>
-                  </div>
-                )}
-                {verdict.feedback_time && (
-                  <div>
-                    <div className="text-xs font-medium text-faint">Feedback pro time</div>
-                    <p className="mt-1 whitespace-pre-wrap text-dim">{verdict.feedback_time}</p>
-                    <button
-                      type="button"
-                      onClick={() => gerar(verdict.feedback_time)}
-                      disabled={loading}
-                      className="mt-3 rounded-md border border-line px-3 py-1.5 text-xs text-dim transition-colors hover:text-ink disabled:opacity-50"
-                    >
-                      {loading ? "time refazendo…" : "Refazer com o feedback do gestor"}
-                    </button>
-                  </div>
-                )}
+                <div className="text-xs font-medium text-faint">Escolhas do gestor</div>
+                <ul className="mt-1 space-y-1">
+                  {verdict.escolhas.map((e, i) => (
+                    <li key={i} className="text-ink">
+                      <span className="font-medium">{e.titulo}</span>
+                      {e.por_que && <span className="text-dim"> — {e.por_que}</span>}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-          </section>
+            {verdict.ajustes && (
+              <div>
+                <div className="text-xs font-medium text-faint">Ajustes sugeridos</div>
+                <p className="mt-1 whitespace-pre-wrap text-dim">{verdict.ajustes}</p>
+              </div>
+            )}
+            {verdict.feedback_time && (
+              <div>
+                <div className="text-xs font-medium text-faint">Feedback pro time</div>
+                <p className="mt-1 whitespace-pre-wrap text-dim">{verdict.feedback_time}</p>
+                <button
+                  type="button"
+                  onClick={() => gerar(verdict.feedback_time)}
+                  disabled={loading}
+                  className="mt-3 rounded-md border border-line px-3 py-1.5 text-xs text-dim transition-colors hover:text-ink disabled:opacity-50"
+                >
+                  {loading ? "time refazendo…" : "Refazer com o feedback do gestor"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* barra de gestão */}
+      {brandItems.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-faint">{brandItems.length} sugestão(ões) salvas</span>
+          <span className="text-line2">·</span>
+          <button type="button" onClick={selecionarTodas} className="text-dim hover:text-ink">
+            selecionar todas
+          </button>
+          {selected.size > 0 && (
+            <button type="button" onClick={apagarSelecionadas} className="text-dim hover:text-bad">
+              apagar selecionadas ({selected.size})
+            </button>
+          )}
+          <span className="text-line2">·</span>
+          <button type="button" onClick={limparMarca} className="text-dim hover:text-bad">
+            limpar tudo desta marca
+          </button>
+        </div>
+      )}
+
+      {brandItems.length === 0 && !loading ? (
+        <p className="rounded-lg border border-dashed border-line bg-panel/30 px-4 py-8 text-center text-sm text-faint">
+          Nenhuma sugestão salva pra {brand?.nome}. Clique em <span className="text-dim">Gerar sugestões</span>.
+        </p>
+      ) : (
+        <div className="space-y-8">
+          {noticias.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold text-ink">
+                Ideias das notícias <span className="text-faint">({noticias.length})</span>
+              </h2>
+              <div className="grid gap-3 md:grid-cols-3">{noticias.map(card)}</div>
+            </section>
+          )}
+          {concorrentes.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold text-ink">
+                Ideias dos concorrentes <span className="text-faint">({concorrentes.length})</span>
+              </h2>
+              <div className="grid gap-3 md:grid-cols-3">{concorrentes.map(card)}</div>
+            </section>
+          )}
         </div>
       )}
     </div>

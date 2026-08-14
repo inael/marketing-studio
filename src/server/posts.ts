@@ -14,6 +14,12 @@ export type Post = {
   status: PostStatus;
   external_url: string | null;
   origem: "manual" | "auto";
+  analista: string | null;
+  fonte_tipo: string | null;
+  fonte_url: string | null;
+  fonte_label: string | null;
+  imagem_prompt: string | null;
+  deleted_at: string | null;
 };
 
 export async function getPost(id: string): Promise<Post | null> {
@@ -37,6 +43,11 @@ export async function createPost(i: {
   scheduled_at?: string | null;
   status?: PostStatus;
   origem?: Post["origem"];
+  analista?: string | null;
+  fonte_tipo?: string | null;
+  fonte_url?: string | null;
+  fonte_label?: string | null;
+  imagem_prompt?: string | null;
 }): Promise<Post> {
   const row = {
     brand_id: i.brand_id,
@@ -48,6 +59,11 @@ export async function createPost(i: {
     scheduled_at: i.scheduled_at ?? null,
     status: i.status ?? "draft",
     origem: i.origem ?? "manual",
+    analista: i.analista ?? null,
+    fonte_tipo: i.fonte_tipo ?? null,
+    fonte_url: i.fonte_url ?? null,
+    fonte_label: i.fonte_label ?? null,
+    imagem_prompt: i.imagem_prompt ?? null,
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [p] = await sql<Post[]>`insert into posts ${sql(row as any)} returning *`;
