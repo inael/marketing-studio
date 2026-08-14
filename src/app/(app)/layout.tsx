@@ -51,12 +51,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               {who}
             </span>
           </div>
-          <Link
+          <a
             href="/logto/sign-out"
             className="mt-1 block rounded-md px-3 py-2 text-xs text-faint transition-colors hover:bg-panel2 hover:text-dim"
           >
             Sair
-          </Link>
+          </a>
         </div>
       </aside>
 
