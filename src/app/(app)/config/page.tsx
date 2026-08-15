@@ -1,5 +1,6 @@
 import { getSettings } from "@/server/settings";
 import { saveConfig } from "./actions";
+import { TwitterConnect } from "@/components/twitter-connect";
 import { PageHeader, btnPrimary, inputCls, labelCls } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -148,6 +149,37 @@ export default async function ConfigPage({
               <label className={labelCls} htmlFor="elevenlabs_voice_id">Voice ID <span className="text-faint">(opcional)</span></label>
               <input id="elevenlabs_voice_id" name="elevenlabs_voice_id" defaultValue={s.elevenlabs_voice_id ?? ""} placeholder="21m00Tcm4TlvDq8ikWAM" className={`${inputCls} font-mono`} />
             </div>
+          </div>
+        </section>
+
+        {/* Twitter/X (scraper self-host) */}
+        <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Twitter/X (fonte de sugestões)</h2>
+            <p className="mt-1 text-xs text-dim">
+              Login de uma conta X pro scraper self-host puxar trends e tweets do nicho.{" "}
+              <span className="text-warn">Use uma conta dedicada/queimada</span> — scraping pode
+              bloquear a conta. A senha é write-only e só é usada no login (depois vale por cookies).
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelCls} htmlFor="twitter_username">Usuário</label>
+              <input id="twitter_username" name="twitter_username" defaultValue={s.twitter_username ?? ""} placeholder="ex: minhaconta" autoComplete="off" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="twitter_email">Email da conta</label>
+              <input id="twitter_email" name="twitter_email" defaultValue={s.twitter_email ?? ""} placeholder="email@exemplo.com" autoComplete="off" className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="twitter_password">Senha</label>
+            <input id="twitter_password" name="twitter_password" type="password" autoComplete="new-password" placeholder="••••••••" className={`${inputCls} font-mono`} />
+            <div className="mt-1"><SecretHint set={Boolean(s.twitter_password)} /></div>
+          </div>
+          <div className="border-t border-line pt-3">
+            <div className="mb-1.5 text-xs font-medium text-dim">Conectar (login + código do email)</div>
+            <TwitterConnect />
           </div>
         </section>
 

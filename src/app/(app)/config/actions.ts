@@ -39,6 +39,12 @@ export async function saveConfig(formData: FormData) {
   patch.automacao_ativa = formData.get("automacao_ativa") === "on" ? "on" : "off";
   patch.automacao_gestor = formData.get("automacao_gestor") === "on" ? "on" : "off";
 
+  // Twitter/X (fonte via scraper self-host). Usuario/email visiveis; senha write-only.
+  patch.twitter_username = str(formData, "twitter_username");
+  patch.twitter_email = str(formData, "twitter_email");
+  const tw = str(formData, "twitter_password");
+  if (tw) patch.twitter_password = tw;
+
   await setSettings(patch);
   revalidatePath("/config");
   redirect("/config?ok=1");
