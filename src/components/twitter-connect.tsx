@@ -7,17 +7,22 @@ export function TwitterConnect() {
   const [status, setStatus] = useState<string | null>(null);
   const [needCode, setNeedCode] = useState(false);
   const [code, setCode] = useState("");
+  const [cookies, setCookies] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function call(action: "login" | "code") {
+  async function call(action: "login" | "code" | "cookies") {
     setBusy(true);
     setErr(null);
     try {
       const r = await fetch("/api/twitter/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, code: action === "code" ? code : undefined }),
+        body: JSON.stringify({
+          action,
+          code: action === "code" ? code : undefined,
+          cookies: action === "cookies" ? cookies : undefined,
+        }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "falhou");
@@ -38,7 +43,27 @@ export function TwitterConnect() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* caminho recomendado: colar cookies do login local */}
+      <div>
+        <textarea
+          value={cookies}
+          onChange={(e) => setCookies(e.target.value)}
+          rows={3}
+          placeholder="cole aqui o conteúdo do cookies.json gerado pelo login_local.py"
+          className={`${inputCls} font-mono text-xs`}
+        />
+        <button
+          type="button"
+          onClick={() => call("cookies")}
+          disabled={busy || !cookies.trim()}
+          className={`${btnGhost} mt-2`}
+        >
+          {busy ? "salvando…" : "Salvar cookies e conectar"}
+        </button>
+      </div>
+
+      <div className="border-t border-line pt-2 text-[11px] text-faint">ou tentar login direto (frágil):</div>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => call("login")} disabled={busy} className={btnGhost}>
           {busy ? "conectando…" : "Conectar / testar login"}

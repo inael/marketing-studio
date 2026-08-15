@@ -32,6 +32,26 @@ export async function fetchRss(url: string): Promise<RssItem[]> {
   }
 }
 
+// ---- Twitter/X (microserviço self-host com twikit) ----
+export type TweetItem = { text: string; likes: number; retweets: number; user: string; url: string };
+
+export async function twitterSignals(query: string, limit = 20): Promise<TweetItem[]> {
+  const base = process.env.TWITTER_SCRAPER_URL;
+  const token = process.env.TWITTER_SCRAPER_TOKEN;
+  if (!base) return [];
+  try {
+    const r = await fetch(
+      `${base.replace(/\/$/, "")}/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+      { headers: { Authorization: `Bearer ${token ?? ""}` } }
+    );
+    if (!r.ok) return [];
+    const data = (await r.json()) as TweetItem[];
+    return Array.isArray(data) ? data.slice(0, limit) : [];
+  } catch {
+    return [];
+  }
+}
+
 // ---- Concorrentes (Instagram business_discovery) ----
 export type CompetitorPost = { caption: string; likes: number; comments: number; permalink?: string };
 

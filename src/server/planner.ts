@@ -2,13 +2,13 @@ import type { AiConfig } from "./settings";
 import { getBrandById, type Brand } from "./brands";
 import { listSources } from "./sources";
 import { listAnalysts, type Persona } from "./personas";
-import { fetchRss, competitorTopPosts, type CompetitorPost, type RssItem } from "./signals";
+import { fetchRss, competitorTopPosts, twitterSignals, type CompetitorPost, type RssItem } from "./signals";
 import { logUsage, usageFrom } from "./usage";
 
 // Núcleo de geração de sugestões, compartilhado entre a rota /api/ai/suggest
 // (uso manual, por fonte) e os crons de automação (uso hands-off, ambas).
 
-export type Fonte = "noticia" | "concorrente";
+export type Fonte = "noticia" | "concorrente" | "twitter";
 
 export type Idea = {
   titulo?: string;
@@ -25,8 +25,9 @@ export type Idea = {
 export type SuggestResult = {
   noticias: Idea[];
   concorrentes: Idea[];
+  twitters: Idea[];
   analysts: { nome: string; modelo: string }[];
-  meta: { rss: number; competitors: number; warnings: string[] };
+  meta: { rss: number; competitors: number; tweets: number; warnings: string[] };
 };
 
 type CompPost = CompetitorPost & { username: string };
@@ -112,7 +113,9 @@ async function callAnalyst(
   const alvo =
     fonte === "concorrente"
       ? "inspirada nos CONCORRENTES (tema/ângulo que engajou; NUNCA copie a legenda deles)"
-      : "inspirada nas NOTÍCIAS";
+      : fonte === "twitter"
+        ? "inspirada nos TWEETS/tendências do X abaixo (assunto em alta; adapte pro público da marca)"
+        : "inspirada nas NOTÍCIAS";
   const sys = `Você é ${a.nome}, analista de mídias sociais da ${brand.nome} (${brand.site_url}). Persona: ${
     a.tracos || "equilibrado"
   }. Skills: ${a.skills || "geral"}. ${a.instrucoes} Tom de voz da marca: ${
@@ -142,7 +145,7 @@ export async function generateSuggestions(
       ? analystsRaw
       : ([{ id: "", nome: "Analista", papel: "analista", tracos: "", instrucoes: "", modelo: "", skills: "", ativo: true }] as Persona[]);
   const warnings: string[] = [];
-  const meta = { rss: 0, competitors: 0, warnings };
+  const meta = { rss: 0, competitors: 0, tweets: 0, warnings };
 
   async function genForFonte(f: Fonte): Promise<Idea[]> {
     let signals = "";
@@ -156,6 +159,19 @@ export async function generateSuggestions(
       signals = rssItems.length
         ? `NOTÍCIAS:\n${rssItems.map((i, idx) => `[${idx}] ${i.title}`).join("\n")}`
         : "NOTÍCIAS: (nenhuma; use conhecimento do setor)";
+    } else if (f === "twitter") {
+      const terms = sources.filter((s) => s.kind === "twitter").slice(0, 3).map((s) => s.value);
+      const queries = terms.length ? terms : [brand.nome];
+      const batches = await Promise.all(queries.map((q) => twitterSignals(q, 10)));
+      const tweets = batches.flat().sort((a, b) => b.likes + b.retweets - (a.likes + a.retweets)).slice(0, 12);
+      if (!tweets.length) warnings.push("Twitter/X sem dados (microserviço não configurado ou sem resultados)");
+      meta.tweets = tweets.length;
+      refs = tweets.map((t) => ({ url: t.url || null, label: `@${t.user}` }));
+      signals = tweets.length
+        ? `TWEETS/TENDÊNCIAS (o que está em alta; inspiração, não copiar):\n${tweets
+            .map((t, idx) => `[${idx}] @${t.user} (${t.likes} likes): ${(t.text || "").replace(/\s+/g, " ").slice(0, 140)}`)
+            .join("\n")}`
+        : "TWEETS: (sem dados; proponha com base no nicho da marca)";
     } else {
       const comps = sources.filter((s) => s.kind === "competitor").slice(0, 5);
       const acc = resolveIg(brand);
@@ -199,10 +215,12 @@ export async function generateSuggestions(
 
   const noticias = !fonte || fonte === "noticia" ? await genForFonte("noticia") : [];
   const concorrentes = !fonte || fonte === "concorrente" ? await genForFonte("concorrente") : [];
+  const twitters = fonte === "twitter" ? await genForFonte("twitter") : [];
 
   return {
     noticias,
     concorrentes,
+    twitters,
     analysts: analysts.map((a) => ({ nome: a.nome, modelo: a.modelo || cfg.model })),
     meta,
   };

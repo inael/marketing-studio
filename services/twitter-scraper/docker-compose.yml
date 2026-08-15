@@ -1,0 +1,25 @@
+# Ajuste as labels do Traefik pra bater com o proxy da VPS (rede/cert resolver).
+services:
+  twitter-scraper:
+    build: .
+    container_name: twitter-scraper
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    environment:
+      - SCRAPER_TOKEN=${SCRAPER_TOKEN}
+      - COOKIES_PATH=/data/cookies.json
+    volumes:
+      - ./data:/data
+    networks:
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.twitterscraper.rule=Host(`twitter-scraper.itbooster.com.br`)
+      - traefik.http.routers.twitterscraper.entrypoints=websecure
+      - traefik.http.routers.twitterscraper.tls.certresolver=le
+      - traefik.http.services.twitterscraper.loadbalancer.server.port=8000
+
+networks:
+  traefik:
+    external: true

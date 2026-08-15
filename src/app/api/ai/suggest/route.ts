@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
     brand_id?: string;
     feedback?: string;
-    fonte?: "noticia" | "concorrente";
+    fonte?: "noticia" | "concorrente" | "twitter";
   };
   if (!body.brand_id) return NextResponse.json({ error: "marca inválida" }, { status: 400 });
 
@@ -29,15 +29,20 @@ export async function POST(req: NextRequest) {
   });
   if (!result) return NextResponse.json({ error: "marca inválida" }, { status: 400 });
 
-  if (!result.noticias.length && !result.concorrentes.length) {
-    return NextResponse.json({ error: "o time não conseguiu montar sugestões, tente de novo" }, { status: 502 });
+  if (!result.noticias.length && !result.concorrentes.length && !result.twitters.length) {
+    const msg =
+      body.fonte === "twitter"
+        ? "Sem sugestões do Twitter/X — o microserviço não está configurado/conectado ou não trouxe tweets."
+        : "o time não conseguiu montar sugestões, tente de novo";
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
 
   // persiste — as sugestões ficam salvas mesmo se o usuário trocar de menu
-  const [noticias, concorrentes] = await Promise.all([
+  const [noticias, concorrentes, twitters] = await Promise.all([
     addSuggestions(body.brand_id, "noticia", result.noticias),
     addSuggestions(body.brand_id, "concorrente", result.concorrentes),
+    addSuggestions(body.brand_id, "twitter", result.twitters),
   ]);
 
-  return NextResponse.json({ noticias, concorrentes, analysts: result.analysts, meta: result.meta });
+  return NextResponse.json({ noticias, concorrentes, twitters, analysts: result.analysts, meta: result.meta });
 }

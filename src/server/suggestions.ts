@@ -1,7 +1,7 @@
 import { sql } from "./db";
 import type { Idea } from "./planner";
 
-export type Grupo = "noticia" | "concorrente";
+export type Grupo = "noticia" | "concorrente" | "twitter";
 
 export type Suggestion = {
   id: string;

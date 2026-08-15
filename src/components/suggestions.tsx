@@ -13,7 +13,7 @@ import { TIPO, readableOn } from "@/lib/ui";
 import { btnPrimary, btnGhost, inputCls } from "@/components/ui";
 
 type BrandLite = { id: string; slug: string; nome: string; cor_principal: string; avatar?: string | null };
-type Grupo = "noticia" | "concorrente";
+type Grupo = "noticia" | "concorrente" | "twitter";
 type Suggestion = {
   id: string;
   brand_id: string;
@@ -37,7 +37,7 @@ type Verdict = { gestor: string; escolhas: { titulo: string; por_que: string }[]
 const TABS: { v: Tab; label: string; ready: boolean }[] = [
   { v: "noticia", label: "Notícias", ready: true },
   { v: "concorrente", label: "Concorrentes", ready: true },
-  { v: "twitter", label: "Twitter/X", ready: false },
+  { v: "twitter", label: "Twitter/X", ready: true },
   { v: "youtube", label: "YouTube", ready: false },
 ];
 const PHRASES = ["lendo as notícias", "olhando os concorrentes", "pensando no ângulo", "escrevendo a legenda", "imaginando a imagem"];
@@ -67,7 +67,10 @@ export function Suggestions({
 
   const brand = brands.find((b) => b.id === brandId);
   const brandItems = items.filter((s) => s.brand_id === brandId);
-  const tabItems = tab === "noticia" || tab === "concorrente" ? brandItems.filter((s) => s.grupo === tab) : [];
+  const tabItems =
+    tab === "noticia" || tab === "concorrente" || tab === "twitter"
+      ? brandItems.filter((s) => s.grupo === tab)
+      : [];
 
   useEffect(() => {
     if (!loading) return;
@@ -79,7 +82,7 @@ export function Suggestions({
 
   async function gerar(fonte: Tab, feedback?: string) {
     if (!brand) return setError("Selecione uma marca.");
-    if (fonte !== "noticia" && fonte !== "concorrente") return;
+    if (fonte !== "noticia" && fonte !== "concorrente" && fonte !== "twitter") return;
     setError(null);
     setLoading(fonte);
     setVerdict(null);
@@ -91,7 +94,7 @@ export function Suggestions({
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "falhou");
-      const novas: Suggestion[] = [...(data.noticias ?? []), ...(data.concorrentes ?? [])];
+      const novas: Suggestion[] = [...(data.noticias ?? []), ...(data.concorrentes ?? []), ...(data.twitters ?? [])];
       setItems((prev) => [...novas, ...prev]);
       setMeta(data.meta as Meta);
     } catch (e) {
@@ -307,7 +310,10 @@ export function Suggestions({
       {/* abas por fonte */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line pb-3">
         {TABS.map((t) => {
-          const n = t.v === "noticia" || t.v === "concorrente" ? brandItems.filter((s) => s.grupo === t.v).length : 0;
+          const n =
+            t.v === "noticia" || t.v === "concorrente" || t.v === "twitter"
+              ? brandItems.filter((s) => s.grupo === t.v).length
+              : 0;
           return (
             <button
               key={t.v}
@@ -327,16 +333,18 @@ export function Suggestions({
 
       {error && <p className="rounded-md border border-bad/30 bg-bad/5 px-3 py-2 text-sm text-bad">{error}</p>}
 
-      {tab === "twitter" || tab === "youtube" ? (
+      {tab === "youtube" ? (
         <p className="rounded-lg border border-dashed border-line bg-panel/30 px-4 py-8 text-center text-sm text-faint">
-          Sugestões a partir do {tab === "twitter" ? "Twitter/X" : "YouTube"} precisam de uma chave de API
-          configurada. Assim que cadastrarmos, esta aba gera igual às outras.
+          Sugestões a partir do YouTube precisam de uma YouTube Data API key configurada. Assim que
+          cadastrarmos, esta aba gera igual às outras.
         </p>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={() => gerar(tab)} disabled={loading === tab} className={btnPrimary}>
-              {loading === tab ? "o time está analisando…" : `Gerar sugestões de ${tab === "noticia" ? "notícias" : "concorrentes"}`}
+              {loading === tab
+                ? "o time está analisando…"
+                : `Gerar sugestões de ${tab === "noticia" ? "notícias" : tab === "twitter" ? "tweets" : "concorrentes"}`}
             </button>
             {loading === tab && (
               <span className="animate-pulse text-sm text-info">{liveStatus}</span>
@@ -404,7 +412,7 @@ export function Suggestions({
 
           {tabItems.length === 0 && loading !== tab ? (
             <p className="rounded-lg border border-dashed border-line bg-panel/30 px-4 py-8 text-center text-sm text-faint">
-              Nenhuma sugestão de {tab === "noticia" ? "notícias" : "concorrentes"} pra {brand?.nome}. Clique em Gerar.
+              Nenhuma sugestão de {tab === "noticia" ? "notícias" : tab === "twitter" ? "tweets" : "concorrentes"} pra {brand?.nome}. Clique em Gerar.
             </p>
           ) : (
             <div className="space-y-3">{tabItems.map(card)}</div>

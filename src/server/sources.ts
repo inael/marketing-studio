@@ -1,6 +1,6 @@
 import { sql } from "./db";
 
-export type SourceKind = "rss" | "competitor";
+export type SourceKind = "rss" | "competitor" | "twitter";
 export type ContentSource = {
   id: string;
   brand_id: string;

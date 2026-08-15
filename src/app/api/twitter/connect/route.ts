@@ -22,10 +22,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = (await req.json().catch(() => ({}))) as { action?: "login" | "code" | "status"; code?: string };
+  const body = (await req.json().catch(() => ({}))) as {
+    action?: "login" | "code" | "status" | "cookies";
+    code?: string;
+    cookies?: string;
+  };
   const s = await getSettings();
 
   try {
+    if (body.action === "cookies") {
+      const r = await fetch(`${base.replace(/\/$/, "")}/cookies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ cookies: body.cookies }),
+      });
+      return NextResponse.json(await r.json(), { status: r.status });
+    }
     if (body.action === "code") {
       const r = await fetch(`${base.replace(/\/$/, "")}/login/code`, {
         method: "POST",
