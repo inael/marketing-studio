@@ -83,7 +83,8 @@ export function PostsView({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [view, setView] = useState<"list" | "grade">("list");
+  const [view, setView] = useState<"list" | "grade">("grade");
+  const [tab, setTab] = useState<"todos" | "posts" | "reels">("todos");
   const [brandSel, setBrandSel] = useState<Set<string>>(new Set());
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
   const [analistaSel, setAnalistaSel] = useState<Set<string>>(new Set());
@@ -111,6 +112,11 @@ export function PostsView({
       (analistaSel.size === 0 || (p.analista ? analistaSel.has(p.analista) : false))
   );
 
+  const isReel = (p: Post) => p.tipo === "reel";
+  const reelCount = filtered.filter(isReel).length;
+  const shown =
+    tab === "todos" ? filtered : filtered.filter((p) => (tab === "reels" ? isReel(p) : !isReel(p)));
+
   const act = (fn: (id: string) => Promise<void>, id: string) =>
     startTransition(async () => {
       await fn(id);
@@ -124,8 +130,8 @@ export function PostsView({
       else n.add(id);
       return n;
     });
-  const allSel = filtered.length > 0 && filtered.every((p) => sel.has(p.id));
-  const toggleAll = () => setSel(allSel ? new Set() : new Set(filtered.map((p) => p.id)));
+  const allSel = shown.length > 0 && shown.every((p) => sel.has(p.id));
+  const toggleAll = () => setSel(allSel ? new Set() : new Set(shown.map((p) => p.id)));
   const approveSelected = () =>
     startTransition(async () => {
       for (const id of sel) {
@@ -143,6 +149,73 @@ export function PostsView({
     });
 
   const open = openId ? posts.find((p) => p.id === openId) ?? null : null;
+
+  const gradeCard = (p: Post) => {
+    const b = byId.get(p.brand_id);
+    const st = STATUS[p.status as StatusKey];
+    return (
+      <div key={p.id} className="flex flex-col">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setOpenId(p.id)}
+          title={p.legenda}
+          className="cursor-pointer transition-transform hover:-translate-y-0.5"
+        >
+          <InstagramPreview
+            compact
+            username={b?.slug ?? "?"}
+            cor={b?.cor_principal ?? "#000"}
+            picture={b?.avatar}
+            media={p.media}
+            legenda={p.legenda}
+            hashtags={p.hashtags}
+            tipo={p.tipo}
+            badge={
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-1.5 py-0.5 text-[10px] text-dim">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: st?.dot ?? "#888" }} />
+                {st?.label ?? p.status}
+              </span>
+            }
+          />
+        </div>
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={sel.has(p.id)}
+            onChange={() => toggleSel(p.id)}
+            className="accent-ink"
+            aria-label="Selecionar"
+          />
+          {p.status === "draft" && (
+            <button
+              onClick={() => act(approvePost, p.id)}
+              disabled={pending}
+              className="rounded-md border border-line px-2 py-0.5 text-[11px] text-dim transition-colors hover:border-ok/50 hover:text-ok disabled:opacity-50"
+            >
+              Aprovar
+            </button>
+          )}
+          {(p.status === "approved" || p.status === "scheduled") && (
+            <button
+              onClick={() => act(publishPostAction, p.id)}
+              disabled={pending}
+              className="rounded-md border border-line px-2 py-0.5 text-[11px] text-dim transition-colors hover:border-info/50 hover:text-info disabled:opacity-50"
+            >
+              Publicar
+            </button>
+          )}
+          <button
+            onClick={() => act(removePost, p.id)}
+            disabled={pending}
+            className="ml-auto rounded-md border border-line px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-bad/50 hover:text-bad disabled:opacity-50"
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -195,6 +268,28 @@ export function PostsView({
         </div>
       </div>
 
+      {/* abas por tipo de conteúdo (reel tem proporção 9:16, misturar quebra a grade) */}
+      <div className="mb-3 flex items-center gap-1 border-b border-line">
+        {(
+          [
+            ["todos", "Todos", filtered.length],
+            ["posts", "Posts", filtered.length - reelCount],
+            ["reels", "Reels", reelCount],
+          ] as const
+        ).map(([key, label, n]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`-mb-px border-b-2 px-3 py-2 text-xs transition-colors ${
+              tab === key ? "border-ink text-ink" : "border-transparent text-dim hover:text-ink"
+            }`}
+          >
+            {label} <span className="text-faint">({n})</span>
+          </button>
+        ))}
+      </div>
+
       {showRank && (
         <div className="mb-5 rounded-lg border border-line bg-panel/50 p-4">
           <div className="mb-2 flex items-center justify-between">
@@ -224,7 +319,7 @@ export function PostsView({
           selecionar todos
         </label>
         <span className="text-faint">
-          {filtered.length} {filtered.length === 1 ? "post" : "posts"}
+          {shown.length} {shown.length === 1 ? "post" : "posts"}
           {pending && " · atualizando…"}
         </span>
         {sel.size > 0 && (
@@ -254,82 +349,29 @@ export function PostsView({
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="rounded-lg border border-dashed border-line bg-panel/30 px-4 py-10 text-center text-sm text-faint">
           Nenhum post com esses filtros.
         </p>
       ) : view === "grade" ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((p) => {
-            const b = byId.get(p.brand_id);
-            const st = STATUS[p.status as StatusKey];
-            return (
-              <div key={p.id} className="flex flex-col">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setOpenId(p.id)}
-                  title={p.legenda}
-                  className="cursor-pointer transition-transform hover:-translate-y-0.5"
-                >
-                  <InstagramPreview
-                    compact
-                    username={b?.slug ?? "?"}
-                    cor={b?.cor_principal ?? "#000"}
-                    picture={b?.avatar}
-                    media={p.media}
-                    legenda={p.legenda}
-                    hashtags={p.hashtags}
-                    tipo={p.tipo}
-                    badge={
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-1.5 py-0.5 text-[10px] text-dim">
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: st?.dot ?? "#888" }} />
-                        {st?.label ?? p.status}
-                      </span>
-                    }
-                  />
-                </div>
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    checked={sel.has(p.id)}
-                    onChange={() => toggleSel(p.id)}
-                    className="accent-ink"
-                    aria-label="Selecionar"
-                  />
-                  {p.status === "draft" && (
-                    <button
-                      onClick={() => act(approvePost, p.id)}
-                      disabled={pending}
-                      className="rounded-md border border-line px-2 py-0.5 text-[11px] text-dim transition-colors hover:border-ok/50 hover:text-ok disabled:opacity-50"
-                    >
-                      Aprovar
-                    </button>
-                  )}
-                  {(p.status === "approved" || p.status === "scheduled") && (
-                    <button
-                      onClick={() => act(publishPostAction, p.id)}
-                      disabled={pending}
-                      className="rounded-md border border-line px-2 py-0.5 text-[11px] text-dim transition-colors hover:border-info/50 hover:text-info disabled:opacity-50"
-                    >
-                      Publicar
-                    </button>
-                  )}
-                  <button
-                    onClick={() => act(removePost, p.id)}
-                    disabled={pending}
-                    className="ml-auto rounded-md border border-line px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-bad/50 hover:text-bad disabled:opacity-50"
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        tab === "todos" && reelCount > 0 && reelCount < shown.length ? (
+          /* mistura de proporções: posts (1:1) à esquerda, reels (9:16) à direita */
+          <div className="grid items-start gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <div className="mb-2 text-[11px] uppercase tracking-wide text-faint">Posts</div>
+              <div className="grid gap-4 sm:grid-cols-2">{shown.filter((p) => !isReel(p)).map(gradeCard)}</div>
+            </div>
+            <div>
+              <div className="mb-2 text-[11px] uppercase tracking-wide text-faint">Reels</div>
+              <div className="grid gap-4">{shown.filter(isReel).map(gradeCard)}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{shown.map(gradeCard)}</div>
+        )
       ) : (
         <ul className="space-y-2">
-          {filtered.map((p) => {
+          {shown.map((p) => {
             const b = byId.get(p.brand_id);
             return (
               <li
