@@ -55,12 +55,12 @@ export async function twitterSignals(query: string, limit = 20): Promise<TweetIt
 // ---- Trending topics do X (endpoint /trends do mesmo microserviço) ----
 export type TrendItem = { name: string; count: number | null };
 
-export async function twitterTrends(limit = 10): Promise<TrendItem[]> {
+async function scraperTrends(path: string, limit: number): Promise<TrendItem[]> {
   const base = process.env.TWITTER_SCRAPER_URL;
   const token = process.env.TWITTER_SCRAPER_TOKEN;
   if (!base) return [];
   try {
-    const r = await fetch(`${base.replace(/\/$/, "")}/trends`, {
+    const r = await fetch(`${base.replace(/\/$/, "")}${path}`, {
       headers: { Authorization: `Bearer ${token ?? ""}` },
     });
     if (!r.ok) return [];
@@ -69,6 +69,16 @@ export async function twitterTrends(limit = 10): Promise<TrendItem[]> {
   } catch {
     return [];
   }
+}
+
+/** Trending topics do X (precisa de cookies conectados no microserviço). */
+export function twitterTrends(limit = 10): Promise<TrendItem[]> {
+  return scraperTrends("/trends", limit);
+}
+
+/** Google Trends (trendspy no microserviço; não depende de cookies). */
+export function googleTrends(limit = 10, geo = "BR"): Promise<TrendItem[]> {
+  return scraperTrends(`/gtrends?geo=${encodeURIComponent(geo)}&limit=${limit}`, limit);
 }
 
 // ---- Concorrentes (Instagram business_discovery) ----

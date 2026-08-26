@@ -2,7 +2,7 @@ import type { AiConfig } from "./settings";
 import { getBrandById, type Brand } from "./brands";
 import { listSources } from "./sources";
 import { listAnalysts, type Persona } from "./personas";
-import { fetchRss, competitorTopPosts, twitterSignals, twitterTrends, type CompetitorPost, type RssItem } from "./signals";
+import { fetchRss, competitorTopPosts, twitterSignals, twitterTrends, googleTrends, type CompetitorPost, type RssItem } from "./signals";
 import { logUsage, usageFrom } from "./usage";
 
 // Núcleo de geração de sugestões, compartilhado entre a rota /api/ai/suggest
@@ -163,21 +163,28 @@ export async function generateSuggestions(
       const terms = sources.filter((s) => s.kind === "twitter").slice(0, 3).map((s) => s.value);
       const queries = terms.length ? terms : [brand.nome];
       const trendsPromise = twitterTrends(10);
+      const gtrendsPromise = googleTrends(10, "BR");
       const batches = await Promise.all(queries.map((q) => twitterSignals(q, 10)));
-      const trends = await trendsPromise;
+      const [trends, gtrends] = await Promise.all([trendsPromise, gtrendsPromise]);
       const tweets = batches.flat().sort((a, b) => b.likes + b.retweets - (a.likes + a.retweets)).slice(0, 12);
-      if (!tweets.length && !trends.length)
+      if (!tweets.length && !trends.length && !gtrends.length)
         warnings.push("Twitter/X sem dados (microserviço não configurado ou sem resultados)");
       meta.tweets = tweets.length;
-      meta.trends = trends.length;
+      meta.trends = trends.length + gtrends.length;
       refs = tweets.map((t) => ({ url: t.url || null, label: `@${t.user}` }));
       const trendsBlock = trends.length
         ? `TRENDING TOPICS agora no X (cite só se fizer sentido pro nicho da marca):\n${trends
             .map((t, idx) => `[T${idx}] ${t.name}${t.count ? ` (${t.count} posts)` : ""}`)
             .join("\n")}\n\n`
         : "";
+      const gtrendsBlock = gtrends.length
+        ? `TENDÊNCIAS DE BUSCA (Google Trends BR; cite só se fizer sentido pro nicho):\n${gtrends
+            .map((t, idx) => `[G${idx}] ${t.name}${t.count ? ` (~${t.count} buscas)` : ""}`)
+            .join("\n")}\n\n`
+        : "";
       signals =
         trendsBlock +
+        gtrendsBlock +
         (tweets.length
           ? `TWEETS/TENDÊNCIAS (o que está em alta; inspiração, não copiar):\n${tweets
               .map((t, idx) => `[${idx}] @${t.user} (${t.likes} likes): ${(t.text || "").replace(/\s+/g, " ").slice(0, 140)}`)

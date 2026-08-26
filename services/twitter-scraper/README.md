@@ -40,8 +40,12 @@ em Sugestões passa a gerar.
 - `GET /health`
 - `GET /status` (Bearer token)
 - `POST /cookies` `{cookies: <json>}` (Bearer)
+- `POST /login` `{username,email,password}` (Bearer) → login pelo app; devolve
+  `needs_code` se o X pedir código do email/2FA
+- `POST /login/code` `{code}` (Bearer) → completa o login com o código
 - `GET /search?q=...&limit=20` (Bearer) → tweets recentes
-- `GET /trends` (Bearer) → trending topics
+- `GET /trends` (Bearer) → trending topics do X
+- `GET /gtrends?geo=BR&limit=10` (Bearer) → Google Trends (trendspy, sem cookies)
 
 ## Notas
 - Usamos o **twifork** (PawiX25/twifork), fork mantido do twikit — o upstream
