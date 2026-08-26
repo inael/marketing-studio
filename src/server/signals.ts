@@ -32,7 +32,7 @@ export async function fetchRss(url: string): Promise<RssItem[]> {
   }
 }
 
-// ---- Twitter/X (microserviço self-host com twikit) ----
+// ---- Twitter/X (microserviço self-host com twifork/twikit) ----
 export type TweetItem = { text: string; likes: number; retweets: number; user: string; url: string };
 
 export async function twitterSignals(query: string, limit = 20): Promise<TweetItem[]> {
@@ -47,6 +47,25 @@ export async function twitterSignals(query: string, limit = 20): Promise<TweetIt
     if (!r.ok) return [];
     const data = (await r.json()) as TweetItem[];
     return Array.isArray(data) ? data.slice(0, limit) : [];
+  } catch {
+    return [];
+  }
+}
+
+// ---- Trending topics do X (endpoint /trends do mesmo microserviço) ----
+export type TrendItem = { name: string; count: number | null };
+
+export async function twitterTrends(limit = 10): Promise<TrendItem[]> {
+  const base = process.env.TWITTER_SCRAPER_URL;
+  const token = process.env.TWITTER_SCRAPER_TOKEN;
+  if (!base) return [];
+  try {
+    const r = await fetch(`${base.replace(/\/$/, "")}/trends`, {
+      headers: { Authorization: `Bearer ${token ?? ""}` },
+    });
+    if (!r.ok) return [];
+    const data = (await r.json()) as TrendItem[];
+    return Array.isArray(data) ? data.filter((t) => t?.name).slice(0, limit) : [];
   } catch {
     return [];
   }

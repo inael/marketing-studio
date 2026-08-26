@@ -31,8 +31,9 @@ Status vai sendo marcado aqui conforme entrega.
 | Logo da marca (upload) | ✅ feito | build |
 
 ### Bloqueado por dependência externa (não implementável sem provisão)
-- **Twitter/X e YouTube como fontes** (Spec 06): precisa de X API (paga) e
-  YouTube Data API key. Abas já existem como "em breve".
+- **YouTube como fonte** (Spec 06): precisa de YouTube Data API key. Aba já
+  existe como "em breve". (Twitter/X foi DESBLOQUEADO sem API paga: microserviço
+  self-host `services/twitter-scraper` com twifork/cookies — search + trends.)
 - **Gerar imagem self-service no app** (Spec 06): API REST da Higgsfield zerada
   (403). Funciona via sessão Claude (MCP, ~1 crédito/img); self-service exige
   top-up na conta REST.

@@ -1,6 +1,6 @@
 # twitter-scraper (fonte Twitter/X das sugestões)
 
-Microserviço self-host (FastAPI + twikit) que puxa **busca de tweets e trends**
+Microserviço self-host (FastAPI + twifork, fork mantido do twikit) que puxa **busca de tweets e trends**
 do nicho, sem a API paga do X. **Não guarda senha**: usa cookies gerados 1x pelo
 `login_local.py`.
 
@@ -9,7 +9,7 @@ principal.
 
 ## Passo 1 — gerar os cookies (na sua máquina, 1x)
 ```bash
-pip install twikit
+pip install twifork
 python login_local.py
 ```
 Digite usuário, email e senha. Se o X pedir o **código do email**, o twikit pede
@@ -44,6 +44,8 @@ em Sugestões passa a gerar.
 - `GET /trends` (Bearer) → trending topics
 
 ## Notas
-- twikit muda de tempos em tempos; se `search_tweet`/`get_trends` quebrarem,
-  atualizar a lib e ajustar os nomes dos métodos.
+- Usamos o **twifork** (PawiX25/twifork), fork mantido do twikit — o upstream
+  (d60/twikit 2.3.3) quebrou em 2026 (ClientTransaction, 404 no SearchTimeline,
+  `get_trends`). O twifork **ainda importa como `twikit`**, então o código não
+  muda. Se quebrar de novo: `pip install -U twifork` e rebuildar a imagem.
 - Mantenha leve na VPS (cpus 0.5 / 512m já no compose).

@@ -1,4 +1,4 @@
-"""Rode NA SUA MAQUINA (nao na VPS): pip install twikit
+"""Rode NA SUA MAQUINA (nao na VPS): pip install twifork
 Faz o login no X e gera cookies.json. Se o X pedir o codigo do email, o twikit
 pede aqui no terminal — cole o codigo. Depois copie o conteudo do cookies.json
 pro campo 'Cookies' no Config do Marketing Studio."""

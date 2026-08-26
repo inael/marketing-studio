@@ -2,7 +2,7 @@ import type { AiConfig } from "./settings";
 import { getBrandById, type Brand } from "./brands";
 import { listSources } from "./sources";
 import { listAnalysts, type Persona } from "./personas";
-import { fetchRss, competitorTopPosts, twitterSignals, type CompetitorPost, type RssItem } from "./signals";
+import { fetchRss, competitorTopPosts, twitterSignals, twitterTrends, type CompetitorPost, type RssItem } from "./signals";
 import { logUsage, usageFrom } from "./usage";
 
 // Núcleo de geração de sugestões, compartilhado entre a rota /api/ai/suggest
@@ -27,7 +27,7 @@ export type SuggestResult = {
   concorrentes: Idea[];
   twitters: Idea[];
   analysts: { nome: string; modelo: string }[];
-  meta: { rss: number; competitors: number; tweets: number; warnings: string[] };
+  meta: { rss: number; competitors: number; tweets: number; trends: number; warnings: string[] };
 };
 
 type CompPost = CompetitorPost & { username: string };
@@ -145,7 +145,7 @@ export async function generateSuggestions(
       ? analystsRaw
       : ([{ id: "", nome: "Analista", papel: "analista", tracos: "", instrucoes: "", modelo: "", skills: "", ativo: true }] as Persona[]);
   const warnings: string[] = [];
-  const meta = { rss: 0, competitors: 0, tweets: 0, warnings };
+  const meta = { rss: 0, competitors: 0, tweets: 0, trends: 0, warnings };
 
   async function genForFonte(f: Fonte): Promise<Idea[]> {
     let signals = "";
@@ -162,16 +162,27 @@ export async function generateSuggestions(
     } else if (f === "twitter") {
       const terms = sources.filter((s) => s.kind === "twitter").slice(0, 3).map((s) => s.value);
       const queries = terms.length ? terms : [brand.nome];
+      const trendsPromise = twitterTrends(10);
       const batches = await Promise.all(queries.map((q) => twitterSignals(q, 10)));
+      const trends = await trendsPromise;
       const tweets = batches.flat().sort((a, b) => b.likes + b.retweets - (a.likes + a.retweets)).slice(0, 12);
-      if (!tweets.length) warnings.push("Twitter/X sem dados (microserviço não configurado ou sem resultados)");
+      if (!tweets.length && !trends.length)
+        warnings.push("Twitter/X sem dados (microserviço não configurado ou sem resultados)");
       meta.tweets = tweets.length;
+      meta.trends = trends.length;
       refs = tweets.map((t) => ({ url: t.url || null, label: `@${t.user}` }));
-      signals = tweets.length
-        ? `TWEETS/TENDÊNCIAS (o que está em alta; inspiração, não copiar):\n${tweets
-            .map((t, idx) => `[${idx}] @${t.user} (${t.likes} likes): ${(t.text || "").replace(/\s+/g, " ").slice(0, 140)}`)
-            .join("\n")}`
-        : "TWEETS: (sem dados; proponha com base no nicho da marca)";
+      const trendsBlock = trends.length
+        ? `TRENDING TOPICS agora no X (cite só se fizer sentido pro nicho da marca):\n${trends
+            .map((t, idx) => `[T${idx}] ${t.name}${t.count ? ` (${t.count} posts)` : ""}`)
+            .join("\n")}\n\n`
+        : "";
+      signals =
+        trendsBlock +
+        (tweets.length
+          ? `TWEETS/TENDÊNCIAS (o que está em alta; inspiração, não copiar):\n${tweets
+              .map((t, idx) => `[${idx}] @${t.user} (${t.likes} likes): ${(t.text || "").replace(/\s+/g, " ").slice(0, 140)}`)
+              .join("\n")}`
+          : "TWEETS: (sem dados; proponha com base no nicho da marca)");
     } else {
       const comps = sources.filter((s) => s.kind === "competitor").slice(0, 5);
       const acc = resolveIg(brand);

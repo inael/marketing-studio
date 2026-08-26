@@ -1,4 +1,4 @@
-"""Microserviço self-host (twikit) — fonte Twitter/X pras sugestões.
+"""Microserviço self-host (twifork, fork mantido do twikit) — fonte Twitter/X pras sugestões.
 Não faz login com senha: usa COOKIES gerados 1x pelo login_local.py.
 Protegido por Bearer SCRAPER_TOKEN."""
 import json
