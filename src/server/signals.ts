@@ -55,6 +55,29 @@ export async function twitterSignals(query: string, limit = 20): Promise<TweetIt
 // ---- Trending topics do X (endpoint /trends do mesmo microserviço) ----
 export type TrendItem = { name: string; count: number | null };
 
+/**
+ * Estado da conta X no microserviço.
+ * null = microserviço não configurado; false = configurado mas sem cookies.
+ */
+export async function twitterConnected(): Promise<boolean | null> {
+  const base = process.env.TWITTER_SCRAPER_URL;
+  const token = process.env.TWITTER_SCRAPER_TOKEN;
+  if (!base) return null;
+  try {
+    const r = await fetch(`${base.replace(/\/$/, "")}/status`, {
+      headers: { Authorization: `Bearer ${token ?? ""}` },
+      cache: "no-store",
+      // curto de propósito: se o serviço cair, a Config não pode ficar pendurada
+      signal: AbortSignal.timeout(3500),
+    });
+    if (!r.ok) return false;
+    const data = (await r.json()) as { connected?: boolean };
+    return Boolean(data?.connected);
+  } catch {
+    return false;
+  }
+}
+
 async function scraperTrends(path: string, limit: number): Promise<TrendItem[]> {
   const base = process.env.TWITTER_SCRAPER_URL;
   const token = process.env.TWITTER_SCRAPER_TOKEN;

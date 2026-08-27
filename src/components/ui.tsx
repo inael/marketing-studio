@@ -59,6 +59,68 @@ export function Empty({
   );
 }
 
+/** Estado de uma integração/conta na tela de Config. */
+export type ConnState = "ok" | "partial" | "off";
+
+const CONN: Record<ConnState, { label: string; cls: string; icon: React.ReactNode }> = {
+  ok: {
+    label: "Conectado",
+    cls: "border-ok/30 bg-ok/10 text-ok",
+    icon: <path d="m3.5 8.5 3 3 6-6.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  partial: {
+    label: "Incompleto",
+    cls: "border-warn/30 bg-warn/10 text-warn",
+    icon: <path d="M8 4.5v4.2M8 11.4v.1" strokeWidth="2" strokeLinecap="round" />,
+  },
+  off: {
+    label: "Não configurado",
+    cls: "border-line bg-panel2 text-faint",
+    icon: <circle cx="8" cy="8" r="4.5" strokeWidth="1.6" strokeDasharray="2.5 2.5" />,
+  },
+};
+
+/**
+ * Selo de status de integração. Sempre ícone + texto (nunca só cor),
+ * pra continuar legível em daltonismo e leitor de tela.
+ */
+export function ConnBadge({ state, label }: { state: ConnState; label?: string }) {
+  const c = CONN[state];
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${c.cls}`}
+    >
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5">
+        {c.icon}
+      </svg>
+      {label ?? c.label}
+    </span>
+  );
+}
+
+/** Cabeçalho de seção da Config: título + selo de status alinhado à direita. */
+export function SectionHead({
+  title,
+  hint,
+  state,
+  badgeLabel,
+}: {
+  title: string;
+  hint?: React.ReactNode;
+  state: ConnState;
+  badgeLabel?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
+        {hint && <p className="mt-1 text-xs text-dim">{hint}</p>}
+      </div>
+      <ConnBadge state={state} label={badgeLabel} />
+    </div>
+  );
+}
+
 // classes reaproveitadas (mantém a chrome consistente)
 export const btnPrimary =
   "inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas transition-opacity hover:opacity-90 disabled:opacity-50";

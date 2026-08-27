@@ -1,7 +1,20 @@
+import Link from "next/link";
 import { getSettings } from "@/server/settings";
 import { saveConfig } from "./actions";
 import { TwitterConnect } from "@/components/twitter-connect";
-import { PageHeader, btnPrimary, inputCls, labelCls } from "@/components/ui";
+import { twitterConnected } from "@/server/signals";
+import { listAllBrands, avatarOf } from "@/server/brands";
+import { resolveIg } from "@/server/planner";
+import {
+  PageHeader,
+  SectionHead,
+  ConnBadge,
+  BrandDot,
+  type ConnState,
+  btnPrimary,
+  inputCls,
+  labelCls,
+} from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +26,54 @@ function SecretHint({ set }: { set: boolean }) {
   );
 }
 
+/** ok quando tem tudo, partial quando tem parte, off quando não tem nada. */
+function stateOf(parts: boolean[]): ConnState {
+  if (parts.every(Boolean)) return "ok";
+  return parts.some(Boolean) ? "partial" : "off";
+}
+
 export default async function ConfigPage({
   searchParams,
 }: {
   searchParams: Promise<{ ok?: string }>;
 }) {
-  const [{ ok }, s] = await Promise.all([searchParams, getSettings()]);
+  const [{ ok }, s, twConn, brands] = await Promise.all([
+    searchParams,
+    getSettings(),
+    twitterConnected(),
+    listAllBrands(),
+  ]);
   const provider = s.ai_provider || "usetokia";
+
+  const tokiaState = stateOf([Boolean(s.usetokia_base_url), Boolean(s.usetokia_api_key)]);
+  const litellmState = stateOf([Boolean(s.litellm_base_url), Boolean(s.litellm_api_key)]);
+  const aiState = provider === "litellm" ? litellmState : tokiaState;
+  const higgsState = stateOf([Boolean(s.higgsfield_api_key), Boolean(s.higgsfield_api_secret)]);
+  const elevenState: ConnState = s.elevenlabs_api_key ? "ok" : "off";
+  const twState: ConnState = twConn === true ? "ok" : twConn === false ? "partial" : "off";
+  const twLabel =
+    twConn === true ? "Conectado" : twConn === false ? "Falta conectar a conta" : "Serviço indisponível";
+  const autoState: ConnState =
+    s.automacao_ativa === "on" && s.automacao_gestor === "on"
+      ? "ok"
+      : s.automacao_ativa === "on" || s.automacao_gestor === "on"
+        ? "partial"
+        : "off";
+  const autoLabel =
+    autoState === "ok" ? "Tudo ligado" : autoState === "partial" ? "Parcial" : "Desligada";
+
+  const contas = brands
+    .filter((b) => b.ativo)
+    .map((b) => ({
+      slug: b.slug,
+      nome: b.nome,
+      cor: b.cor_principal,
+      picture: avatarOf(b),
+      ig: Boolean(resolveIg(b)),
+      linkedin: Boolean(b.linkedin_org_id),
+    }));
+  const igOn = contas.filter((c) => c.ig).length;
+  const liOn = contas.filter((c) => c.linkedin).length;
 
   return (
     <>
@@ -27,6 +81,36 @@ export default async function ConfigPage({
         title="Configurações"
         subtitle="Integrações de IA e credenciais do estúdio"
       />
+
+      {/* Panorama: o que já está no ar, num relance */}
+      <section className="mb-8 max-w-2xl rounded-lg border border-line bg-panel/50 p-5">
+        <h2 className="text-sm font-semibold text-ink">Status das integrações</h2>
+        <p className="mt-1 text-xs text-dim">
+          Resumo do que já está ativo. Cada item abaixo repete o selo na sua seção.
+        </p>
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          {[
+            { label: provider === "litellm" ? "IA de texto (LiteLLM)" : "IA de texto (UseTokia)", state: aiState },
+            { label: "Higgsfield (imagem)", state: higgsState },
+            { label: "ElevenLabs (narração)", state: elevenState },
+            { label: "Twitter/X (sugestões)", state: twState, badge: twLabel },
+            { label: "Automação", state: autoState, badge: autoLabel },
+            {
+              label: "Contas das marcas",
+              state: stateOf([igOn > 0, liOn > 0]),
+              badge: `${igOn} Instagram · ${liOn} LinkedIn`,
+            },
+          ].map((row) => (
+            <li
+              key={row.label}
+              className="flex items-center justify-between gap-3 rounded-md border border-line bg-panel2/60 px-3 py-2"
+            >
+              <span className="min-w-0 truncate text-xs text-dim">{row.label}</span>
+              <ConnBadge state={row.state} label={row.badge} />
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {ok && (
         <p className="mb-6 rounded-md border border-ok/30 bg-ok/5 px-3 py-2 text-sm text-ok">
@@ -37,12 +121,11 @@ export default async function ConfigPage({
       <form action={saveConfig} className="max-w-2xl space-y-8">
         {/* IA de texto */}
         <section className="space-y-5 rounded-lg border border-line bg-panel/50 p-6">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">IA de texto (legenda)</h2>
-            <p className="mt-1 text-xs text-dim">
-              Provedor OpenAI-compatível usado pra gerar/reescrever legendas com o tom de voz da marca.
-            </p>
-          </div>
+          <SectionHead
+            title="IA de texto (legenda)"
+            hint="Provedor OpenAI-compatível usado pra gerar/reescrever legendas com o tom de voz da marca."
+            state={aiState}
+          />
 
           <div className="flex gap-3">
             {[
@@ -60,13 +143,17 @@ export default async function ConfigPage({
                   defaultChecked={provider === p.v}
                   className="accent-ink"
                 />
-                {p.label} ativo
+                <span className="flex-1">{p.label}</span>
+                {provider === p.v && <span className="text-[10px] text-faint">em uso</span>}
               </label>
             ))}
           </div>
 
           <div className="space-y-4 rounded-md border border-line p-4">
-            <div className="font-mono text-xs text-faint">UseTokia</div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-xs text-faint">UseTokia</span>
+              <ConnBadge state={tokiaState} label={tokiaState === "ok" ? "Credenciais ok" : undefined} />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls} htmlFor="usetokia_base_url">Base URL</label>
@@ -85,7 +172,10 @@ export default async function ConfigPage({
           </div>
 
           <div className="space-y-4 rounded-md border border-line p-4">
-            <div className="font-mono text-xs text-faint">LiteLLM</div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-xs text-faint">LiteLLM</span>
+              <ConnBadge state={litellmState} label={litellmState === "ok" ? "Credenciais ok" : undefined} />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls} htmlFor="litellm_base_url">Base URL</label>
@@ -106,13 +196,16 @@ export default async function ConfigPage({
 
         {/* Higgsfield */}
         <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Higgsfield (imagem)</h2>
-            <p className="mt-1 text-xs text-dim">
-              Gera imagens dos posts. A Higgsfield autentica com{" "}
-              <span className="font-mono">key</span> + <span className="font-mono">secret</span>.
-            </p>
-          </div>
+          <SectionHead
+            title="Higgsfield (imagem)"
+            hint={
+              <>
+                Gera imagens dos posts. A Higgsfield autentica com{" "}
+                <span className="font-mono">key</span> + <span className="font-mono">secret</span>.
+              </>
+            }
+            state={higgsState}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="higgsfield_api_key">API key</label>
@@ -133,12 +226,11 @@ export default async function ConfigPage({
 
         {/* ElevenLabs */}
         <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">ElevenLabs (narração)</h2>
-            <p className="mt-1 text-xs text-dim">
-              API key e voz padrão pra narrar reels e vídeos quando precisar.
-            </p>
-          </div>
+          <SectionHead
+            title="ElevenLabs (narração)"
+            hint="API key e voz padrão pra narrar reels e vídeos quando precisar."
+            state={elevenState}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="elevenlabs_api_key">API key</label>
@@ -154,14 +246,24 @@ export default async function ConfigPage({
 
         {/* Twitter/X (scraper self-host) */}
         <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Twitter/X (fonte de sugestões)</h2>
-            <p className="mt-1 text-xs text-dim">
-              Login de uma conta X pro scraper self-host puxar trends e tweets do nicho.{" "}
-              <span className="text-warn">Use uma conta dedicada/queimada</span> — scraping pode
-              bloquear a conta. A senha é write-only e só é usada no login (depois vale por cookies).
+          <SectionHead
+            title="Twitter/X (fonte de sugestões)"
+            hint={
+              <>
+                Login de uma conta X pro scraper self-host puxar trends e tweets do nicho.{" "}
+                <span className="text-warn">Use uma conta dedicada/queimada</span> — scraping pode
+                bloquear a conta. A senha é write-only e só é usada no login (depois vale por cookies).
+              </>
+            }
+            state={twState}
+            badgeLabel={twLabel}
+          />
+          {twConn === false && (
+            <p className="rounded-md border border-warn/30 bg-warn/5 px-3 py-2 text-xs text-warn">
+              O microserviço está no ar, mas nenhuma conta do X está conectada. As sugestões já usam
+              o Google Trends BR; conectar a conta adiciona os trending topics e tweets do próprio X.
             </p>
-          </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="twitter_username">Usuário</label>
@@ -185,13 +287,12 @@ export default async function ConfigPage({
 
         {/* Automação */}
         <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Automação (piloto automático)</h2>
-            <p className="mt-1 text-xs text-dim">
-              Deixe o time trabalhar sozinho. Você mantém o controle: nada é publicado sem que você
-              ligue explicitamente o gestor.
-            </p>
-          </div>
+          <SectionHead
+            title="Automação (piloto automático)"
+            hint="Deixe o time trabalhar sozinho. Você mantém o controle: nada é publicado sem que você ligue explicitamente o gestor."
+            state={autoState}
+            badgeLabel={autoLabel}
+          />
           <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line bg-panel2 p-4 has-[:checked]:border-line2">
             <input type="checkbox" name="automacao_ativa" defaultChecked={s.automacao_ativa === "on"} className="mt-0.5 accent-ink" />
             <span>
@@ -219,6 +320,50 @@ export default async function ConfigPage({
           Salvar configurações
         </button>
       </form>
+
+      {/* Contas das marcas — read-only aqui; conecta na página da marca */}
+      <section className="mt-8 max-w-2xl space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+        <SectionHead
+          title="Contas conectadas das marcas"
+          hint="Instagram e LinkedIn são conectados por marca. Aqui só mostramos o estado; para conectar, abra a marca."
+          state={stateOf([igOn > 0, liOn > 0])}
+          badgeLabel={`${igOn} Instagram · ${liOn} LinkedIn`}
+        />
+        {contas.length === 0 ? (
+          <p className="text-xs text-faint">
+            Nenhuma marca ativa ainda.{" "}
+            <Link href="/marcas" className="text-dim underline underline-offset-2 hover:text-ink">
+              Criar a primeira marca
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {contas.map((c) => (
+              <li
+                key={c.slug}
+                className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-panel2/60 px-3 py-2.5"
+              >
+                {c.picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.picture} alt="" referrerPolicy="no-referrer" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                ) : (
+                  <BrandDot color={c.cor} size={14} />
+                )}
+                <span className="min-w-0 flex-1 truncate text-sm text-ink">{c.nome}</span>
+                <ConnBadge state={c.ig ? "ok" : "off"} label={c.ig ? "Instagram" : "Instagram off"} />
+                <ConnBadge state={c.linkedin ? "ok" : "off"} label={c.linkedin ? "LinkedIn" : "LinkedIn off"} />
+                <Link
+                  href={`/marcas/${c.slug}/conectar`}
+                  className="text-xs text-dim underline underline-offset-2 transition-colors hover:text-ink"
+                >
+                  {c.ig && c.linkedin ? "Gerenciar" : "Conectar"}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
   );
 }
