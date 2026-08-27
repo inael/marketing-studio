@@ -6,9 +6,15 @@ import { SideNav } from "@/components/side-nav";
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, claims, userInfo } = await getLogtoContext(logtoConfig, {
-    fetchUserInfo: true,
-  });
+  let ctx: Awaited<ReturnType<typeof getLogtoContext>>;
+  try {
+    ctx = await getLogtoContext(logtoConfig, { fetchUserInfo: true });
+  } catch {
+    // Sessão velha (refresh token expirado → oidc.invalid_grant) ou Logto fora:
+    // manda pro sign-in pra renovar o cookie em vez de estourar 500.
+    redirect("/logto/sign-in");
+  }
+  const { isAuthenticated, claims, userInfo } = ctx;
   if (!isAuthenticated) redirect("/logto/sign-in");
 
   const who = userInfo?.name ?? claims?.name ?? claims?.email ?? claims?.sub ?? "conta";
