@@ -133,3 +133,13 @@ export async function setPostStatus(
     (patch as any).erro ?? null
   }, updated_at=now() where id=${id}`;
 }
+
+/** troca a mídia do post (usado quando a imagem é gerada depois do rascunho) */
+export async function setPostMedia(id: string, media: string[]): Promise<void> {
+  await sql`update posts set media=${media}, updated_at=now() where id=${id}`;
+}
+
+/** salva o prompt de imagem editado na tela de Posts */
+export async function setPostImagePrompt(id: string, prompt: string): Promise<void> {
+  await sql`update posts set imagem_prompt=${prompt}, updated_at=now() where id=${id}`;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { readableOn } from "@/lib/ui";
+import { Avatar } from "@/components/avatar";
 
 type Props = {
   username: string;
@@ -47,23 +47,7 @@ export function InstagramPreview({
     <div className="overflow-hidden rounded-xl border border-line bg-panel">
       {/* header */}
       <div className="flex items-center gap-2.5 px-3 py-2.5">
-        {picture ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={picture}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-offset-1 ring-offset-panel"
-            style={{ ["--tw-ring-color" as string]: cor }}
-          />
-        ) : (
-          <span
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
-            style={{ background: cor, color: readableOn(cor) }}
-          >
-            {(username[0] ?? "?").toUpperCase()}
-          </span>
-        )}
+        <Avatar src={picture} nome={username} cor={cor} size={32} ring />
         <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight text-ink">
           {username}
         </span>

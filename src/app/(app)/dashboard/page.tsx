@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { dashboardSummary } from "@/server/dashboard";
 import { PageHeader } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
 import { TIPO, fmtDate } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,20 @@ function Stat({ label, value, href, tone }: { label: string; value: number; href
     </Link>
   ) : (
     body
+  );
+}
+
+function Rede({ label, on }: { label: string; on: boolean }) {
+  return (
+    <span
+      title={on ? `${label}: conectado` : `${label}: não conectado`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+        on ? "border-ok/30 bg-ok/10 text-ok" : "border-line bg-panel2 text-faint"
+      }`}
+    >
+      <span aria-hidden>{on ? "✓" : "○"}</span>
+      {label}
+    </span>
   );
 }
 
@@ -124,15 +139,12 @@ export default async function DashboardPage() {
                 key={c.slug}
                 className="flex items-center gap-3 rounded-lg border border-line bg-panel px-4 py-2.5"
               >
-                {c.picture ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.picture} alt="" referrerPolicy="no-referrer" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-                ) : (
-                  <span className="h-8 w-8 shrink-0 rounded-full" style={{ background: c.cor }} />
-                )}
+                <Avatar src={c.picture} nome={c.nome} cor={c.cor} title={c.nome} />
                 <span className="min-w-0 flex-1 truncate text-sm text-ink">{c.nome}</span>
-                <span className={`text-[11px] ${c.ig ? "text-ok" : "text-faint"}`}>IG</span>
-                <span className={`text-[11px] ${c.linkedin ? "text-ok" : "text-faint"}`}>in</span>
+                {/* rede sem conexão bloqueia o Publicar, então o selo diz isso por
+                    extenso em vez de deixar duas letras cinzas ambíguas */}
+                <Rede label="IG" on={c.ig} />
+                <Rede label="in" on={c.linkedin} />
               </li>
             ))}
           </ul>

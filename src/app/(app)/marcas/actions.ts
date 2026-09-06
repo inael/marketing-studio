@@ -9,6 +9,7 @@ import { addTimeslot, removeTimeslot } from "@/server/timeslots";
 import { addSource, removeSource, type SourceKind } from "@/server/sources";
 import { getOauthSession, deleteOauthSession } from "@/server/oauth";
 import { resolveIg } from "@/server/planner";
+import { cacheAvatar } from "@/server/media";
 
 async function requireAuth() {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
@@ -103,7 +104,11 @@ export async function refreshBrandPhotos() {
           `${GRAPH}/${acc.igUserId}?fields=profile_picture_url,username&access_token=${acc.token}`
         );
         const d = await r.json();
-        if (d?.profile_picture_url) await updateBrand(b.id, { ig_picture: d.profile_picture_url });
+        if (d?.profile_picture_url) {
+          // a URL do CDN da Meta expira: guarda uma cópia nossa e cai nela
+          const fixa = await cacheAvatar(d.profile_picture_url, b.id);
+          await updateBrand(b.id, { ig_picture: fixa ?? d.profile_picture_url });
+        }
       } catch {
         /* ignora marca que falhar; as outras seguem */
       }
@@ -125,10 +130,12 @@ export async function finalizeInstagram(
     | { igId: string; pageToken: string; picture?: string | null }
     | undefined;
   if (acc) {
+    // a foto vem como URL assinada do CDN da Meta (expira): fixa no nosso R2
+    const fixa = acc.picture ? await cacheAvatar(acc.picture, brandId) : null;
     await updateBrand(brandId, {
       ig_user_id: acc.igId,
       ig_token: acc.pageToken,
-      ig_picture: acc.picture ?? null,
+      ig_picture: fixa ?? acc.picture ?? null,
     });
     await deleteOauthSession(sessionId);
   }

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
-import { getBrandById, type Brand } from "@/server/brands";
+import { getBrandById, updateBrand, type Brand } from "@/server/brands";
+import { cacheAvatar } from "@/server/media";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -50,7 +51,15 @@ export async function POST(req: NextRequest) {
         { status: 502 }
       );
     }
-    return NextResponse.json({ username: data.username, picture: data.profile_picture_url });
+    // "Verificar" também conserta o avatar: a URL do Graph é assinada e expira,
+    // então a cópia vai pro R2 e o banco passa a apontar pra ela.
+    let picture: string | null = data.profile_picture_url ?? null;
+    if (picture) {
+      const fixa = await cacheAvatar(picture, brand.id);
+      picture = fixa ?? picture;
+      await updateBrand(brand.id, { ig_picture: picture });
+    }
+    return NextResponse.json({ username: data.username, picture });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "falha ao verificar" },

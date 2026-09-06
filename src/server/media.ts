@@ -46,3 +46,29 @@ export async function saveRemoteMedia(
   await addMedia({ brand_id: brandId, url, tipo: isVideo ? "video" : "image", origem });
   return url;
 }
+
+/**
+ * Fixa a foto de perfil do Instagram no R2.
+ *
+ * `profile_picture_url` do Graph é uma URL assinada do CDN da Meta e expira em
+ * poucos dias — guardá-la crua no banco fazia o avatar quebrar sozinho depois
+ * de um tempo. Aqui a imagem é copiada pro nosso bucket e o que vai pro banco é
+ * uma URL permanente. Não entra na Biblioteca (não é mídia de post).
+ *
+ * Devolve null em qualquer falha, pra quem chamou poder cair na URL original.
+ */
+export async function cacheAvatar(remoteUrl: string, brandId: string): Promise<string | null> {
+  try {
+    const res = await fetch(remoteUrl);
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    const ct = res.headers.get("content-type") || "image/jpeg";
+    if (!ct.startsWith("image/")) return null;
+    const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
+    // chave nova a cada atualização: evita servir a foto antiga por cache de CDN
+    const key = `avatars/${brandId}-${Date.now()}.${ext}`;
+    return await uploadPublic(buf, key, ct);
+  } catch {
+    return null;
+  }
+}

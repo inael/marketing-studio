@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { initials } from "@/lib/ui";
+import { Avatar } from "@/components/avatar";
 
-type Item = { href: string; label: string };
+type Item = { href: string; label: string; hint?: string };
 type Section = { key: string; label: string; icon: ReactNode; items: Item[] };
 
 const I = (d: ReactNode) => (
@@ -17,13 +18,15 @@ const I = (d: ReactNode) => (
 
 const SECTIONS: Section[] = [
   { key: "inicio", label: "Início", icon: I(<><rect x="4" y="4" width="7" height="9" rx="1.5" strokeWidth="1.6" /><rect x="4" y="16" width="7" height="4" rx="1.5" strokeWidth="1.6" /><rect x="13" y="4" width="7" height="4" rx="1.5" strokeWidth="1.6" /><rect x="13" y="11" width="7" height="9" rx="1.5" strokeWidth="1.6" /></>), items: [{ href: "/dashboard", label: "Dashboard" }] },
+  // Ordem do submenu = ordem do trabalho: de onde a ideia nasce até ela ir ao ar.
+  // As três primeiras são o caminho de uma publicação; as três últimas são apoio.
   { key: "conteudo", label: "Conteúdo", icon: I(<><rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="1.6" /><path d="M4 9h16M9 9v11" strokeWidth="1.5" /></>), items: [
-    { href: "/posts", label: "Posts" },
-    { href: "/criar", label: "Criar" },
-    { href: "/sugestoes", label: "Sugestões" },
-    { href: "/storyboard", label: "Storyboard" },
-    { href: "/calendario", label: "Calendário" },
-    { href: "/biblioteca", label: "Biblioteca" },
+    { href: "/sugestoes", label: "Sugestões", hint: "ideias da IA — vire rascunho" },
+    { href: "/criar", label: "Criar", hint: "post novo, do zero" },
+    { href: "/posts", label: "Posts", hint: "gerar arte, aprovar e publicar" },
+    { href: "/calendario", label: "Calendário", hint: "o que já tem hora marcada" },
+    { href: "/storyboard", label: "Storyboard", hint: "roteiro de reel" },
+    { href: "/biblioteca", label: "Biblioteca", hint: "imagens já geradas" },
   ] },
   { key: "marcas", label: "Marcas", icon: I(<><circle cx="12" cy="12" r="8" strokeWidth="1.6" /><circle cx="12" cy="12" r="2.5" strokeWidth="1.6" /></>), items: [{ href: "/marcas", label: "Marcas" }] },
   { key: "relatorios", label: "Relatórios", icon: I(<><path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6" strokeWidth="1.6" strokeLinecap="round" /></>), items: [
@@ -124,14 +127,7 @@ export function AppShell({
           {/* conta / tema / sair — separados do menu por uma borda */}
           <div className="mt-2 flex w-full flex-col items-center gap-1 border-t border-line px-1.5 pt-2">
             {picture ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={picture}
-                alt=""
-                referrerPolicy="no-referrer"
-                title={who}
-                className="h-8 w-8 shrink-0 rounded-full object-cover"
-              />
+              <Avatar src={picture} nome={initials(who)} cor="#3a3a40" title={who} />
             ) : (
               <span
                 title={who}
@@ -159,7 +155,7 @@ export function AppShell({
 
         {/* painel de submenu (só pras seções com mais de um destino) */}
         {panel && (
-          <div id="submenu" className="flex w-48 flex-col border-r border-line bg-panel">
+          <div id="submenu" className="flex w-56 flex-col border-r border-line bg-panel">
             <div className="px-4 pb-2 pt-4 text-sm font-semibold text-ink">{panel.label}</div>
             <nav aria-label={panel.label} className="flex-1 space-y-0.5 px-2 pb-3">
               {panel.items.map((it) => {
@@ -169,11 +165,14 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     aria-current={active ? "page" : undefined}
-                    className={`block rounded-md px-3 py-2 text-sm transition-colors ${
+                    className={`block rounded-md px-3 py-2 transition-colors ${
                       active ? "bg-panel2 text-ink" : "text-dim hover:bg-panel2/60 hover:text-ink"
                     }`}
                   >
-                    {it.label}
+                    <span className="block text-sm leading-tight">{it.label}</span>
+                    {it.hint && (
+                      <span className="mt-0.5 block text-[10px] leading-snug text-faint">{it.hint}</span>
+                    )}
                   </Link>
                 );
               })}
@@ -182,7 +181,7 @@ export function AppShell({
         )}
       </aside>
 
-      <main className={`transition-[padding] duration-200 ${panel ? "pl-64" : "pl-16"}`}>
+      <main className={`transition-[padding] duration-200 ${panel ? "pl-72" : "pl-16"}`}>
         <div className="mx-auto max-w-6xl px-8 py-8">{children}</div>
       </main>
     </div>

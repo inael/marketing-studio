@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { setBrandLogo } from "@/app/(app)/marcas/actions";
 import { btnGhost } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
 
 async function resize(file: File, max = 512): Promise<{ blob: Blob; name: string }> {
   if (!file.type.startsWith("image/")) return { blob: file, name: file.name };
@@ -72,14 +73,7 @@ export function BrandLogo({
 
   return (
     <div className="flex items-center gap-4">
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="" referrerPolicy="no-referrer" className="h-16 w-16 shrink-0 rounded-full border border-line object-cover" />
-      ) : (
-        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full text-lg font-semibold" style={{ background: cor }}>
-          {(nome[0] ?? "?").toUpperCase()}
-        </span>
-      )}
+      <Avatar src={url} nome={nome} cor={cor} size={64} className="border border-line" />
       <div>
         <button type="button" onClick={() => ref.current?.click()} disabled={busy} className={btnGhost}>
           {busy ? "enviando…" : logo ? "Trocar logo" : "Enviar logo"}
