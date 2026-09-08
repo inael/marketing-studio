@@ -47,8 +47,10 @@ Ainda em https://business.facebook.com/settings:
    - a **Página** da Etapa 1, com **controle total** (Full control / Gerenciar);
    - a **conta do Instagram** da Etapa 1, com controle total.
 4. Clique em "Gerar novo token" / "Generate new token".
-   - App: escolha o app da IT Booster que estiver na lista. Se aparecer mais de
-     um, me diga os nomes antes de escolher.
+   - App: escolha **IT Booster Master, ID `839701598761781`**. Cuidado: existe
+     um segundo app com o MESMO nome "IT Booster Master" e ID
+     `27036330539386045` — esse é o de desenvolvimento, NÃO use. O
+     "IT Booster Mensageria" (`1892348125055948`) também não serve.
    - Expiração: **Nunca** (Never), se a opção existir.
    - Marque exatamente estas cinco permissões:
      `instagram_basic`, `instagram_content_publish`, `pages_show_list`,
@@ -68,7 +70,7 @@ botão "Conectar" do painel, que é outro caminho.
 
 Abra https://developers.facebook.com/tools/explorer
 
-1. Em "Meta App", escolha o mesmo app da Etapa 2.
+1. Em "Meta App", escolha o mesmo app da Etapa 2 (ID `839701598761781`).
 2. No campo de token (canto superior direito), **cole o token** que você gerou.
 3. No campo da requisição, apague o que estiver lá e digite exatamente:
    `me/accounts?fields=name,instagram_business_account{id,username}`
@@ -107,7 +109,7 @@ Me responda com:
 
 - O @ do Instagram e o nome da Página.
 - O `instagram_business_account.id` (o número).
-- O nome do app da Meta que você usou.
+- O ID do app da Meta que você usou (confirme que foi `839701598761781`).
 - O que o botão "Verificar" mostrou (texto exato, verde ou vermelho).
 - Se o selo **IG** daquela marca no dashboard ficou verde com "✓" ou seguiu
   cinza com "○".
