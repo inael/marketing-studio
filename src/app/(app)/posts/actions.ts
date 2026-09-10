@@ -83,10 +83,3 @@ export async function generatePostImage(
   revalidatePath("/posts");
   return { ok: true, url };
 }
-
-export async function savePostImagePrompt(id: string, prompt: string): Promise<ActionResult> {
-  await requireAuth();
-  await setPostImagePrompt(id, prompt.trim());
-  revalidatePath("/posts");
-  return { ok: true };
-}
