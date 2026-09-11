@@ -34,9 +34,15 @@ Status vai sendo marcado aqui conforme entrega.
 - **YouTube como fonte** (Spec 06): precisa de YouTube Data API key. Aba já
   existe como "em breve". (Twitter/X foi DESBLOQUEADO sem API paga: microserviço
   self-host `services/twitter-scraper` com twifork/cookies — search + trends.)
-- **Gerar imagem self-service no app** (Spec 06): API REST da Higgsfield zerada
-  (403). Funciona via sessão Claude (MCP, ~1 crédito/img); self-service exige
-  top-up na conta REST.
+- **Gerar imagem self-service no app** (Spec 06): conta Higgsfield **sem
+  crédito**. Reverificado contra a API em 2026-09-11: as credenciais do vault
+  são VÁLIDAS (payload inválido devolve `422 Field required`, credencial falsa
+  devolve `401 Invalid credentials`), e a geração real devolve
+  `403 {"detail":"not_enough_credits"}`. Ou seja: não é problema de chave, é
+  só saldo — resolve com top-up em platform.higgsfield.ai, sem mexer em código.
+  O botão "Gerar imagem" em Posts já existe e passa a mostrar essa mensagem em
+  vez de "Higgsfield retornou 403". Enquanto não houver saldo, o caminho é
+  subir a arte à mão em Criar.
 - **Publicar no LinkedIn** (adaptar-por-rede): app aguarda aprovação do
   Community Management API pela LinkedIn.
 - **Conectar contas por OAuth**: liberar domínio/redirect no app do Meta.
