@@ -23,7 +23,13 @@ export function hfError(status: number, data: unknown): string {
   const cru = detalhe ?? d.error ?? d.message;
 
   if (cru === "not_enough_credits") {
-    return "Sem créditos na Higgsfield. Faça top-up em platform.higgsfield.ai pra gerar imagem pelo app — enquanto isso dá pra subir a arte à mão em Criar.";
+    // O saldo da API é SEPARADO do crédito do app web e dos modelos "365
+    // Unlimited" — top-up tem que ser no dashboard da API (cloud.higgsfield.ai);
+    // recarregar em higgsfield.ai não abastece esta chave.
+    return "Sem saldo na API da Higgsfield. O crédito do app web e os modelos ilimitados não valem aqui: recarregue em cloud.higgsfield.ai. Enquanto isso dá pra subir a arte à mão em Criar.";
+  }
+  if (cru === "model_not_found") {
+    return "Esse modelo não existe na API da Higgsfield (os ilimitados do app web não têm endpoint REST). Escolha outro em Config.";
   }
   if (status === 401) {
     return "Credenciais da Higgsfield recusadas (401). Confira a API key e o secret em Config.";

@@ -6,9 +6,19 @@ import { hfError } from "./higgsfield";
 describe("hfError", () => {
   it("diz o que fazer quando a conta esta sem credito", () => {
     const msg = hfError(403, { detail: "not_enough_credits" });
-    expect(msg).toMatch(/sem créditos/i);
-    expect(msg).toMatch(/top-up/i);
+    expect(msg).toMatch(/sem saldo/i);
+    expect(msg).toMatch(/recarregue/i);
     expect(msg).not.toMatch(/retornou 403/);
+  });
+
+  it("manda recarregar no dashboard da API, nao no app web", () => {
+    const msg = hfError(403, { detail: "not_enough_credits" });
+    expect(msg).toContain("cloud.higgsfield.ai");
+    expect(msg).not.toContain("platform.higgsfield.ai");
+  });
+
+  it("explica que os modelos ilimitados do app web nao tem endpoint REST", () => {
+    expect(hfError(404, { detail: "model_not_found" })).toMatch(/não existe na API/i);
   });
 
   it("aponta pra Config quando a credencial e recusada", () => {
