@@ -17,6 +17,10 @@ venv/
 # projetos de estudo (têm .git próprio; não fazem parte do produto)
 projetos_para_estudo/
 
+# LoopX (estado local do projeto; não commitar)
+.loopx/
+.codex/goals/
+
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -32,3 +36,16 @@ yarn-error.log*
 coverage/
 .vercel
 *.pem
+
+# Remotion: fonte entra no repo, saida binaria nao.
+#
+# `renders/` sao 32 MB de MP4 e JPG e `public/` 21 MB de audio e talking head.
+# Sao DERIVADOS: `npx remotion render` reconstroi a partir de src/ + data/copy.ts.
+# Commitar binario grande incha o clone de todo mundo pra sempre, porque o git
+# guarda cada versao. O que precisa sobreviver e a receita, nao o bolo.
+#
+# Se um render especifico precisar ser preservado (peca aprovada que foi ao ar),
+# ele vai pro R2, nao pra ca. Ver reference_higgsfield_mcp_vs_api na memoria.
+remotion/renders/
+remotion/public/audio/
+remotion/public/talking/

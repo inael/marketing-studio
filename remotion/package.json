@@ -1,0 +1,28 @@
+{
+  "name": "reels-itbooster",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "render:ib01": "remotion render reel-ib01 renders/reels/ib01.mp4 --crf=14 --image-format=png",
+    "render:ib02": "remotion render reel-ib02 renders/reels/ib02.mp4 --crf=14 --image-format=png",
+    "render:ib03": "remotion render reel-ib03 renders/reels/ib03.mp4 --crf=14 --image-format=png",
+    "render:feed:ib01": "remotion still feed-ib01 renders/feed/ib01.jpg --image-format=jpeg",
+    "render:feed:ib02": "remotion still feed-ib02 renders/feed/ib02.jpg --image-format=jpeg",
+    "render:feed:ib03": "remotion still feed-ib03 renders/feed/ib03.jpg --image-format=jpeg",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.448",
+    "@remotion/google-fonts": "4.0.448",
+    "@remotion/shapes": "4.0.448",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.448"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.0",
+    "@types/web": "0.0.166",
+    "typescript": "5.8.2"
+  }
+}
