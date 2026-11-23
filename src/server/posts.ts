@@ -20,6 +20,17 @@ export type Post = {
   fonte_label: string | null;
   imagem_prompt: string | null;
   deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  erro: string | null;
+  // B11/B16/B10: colunas novas (opcionais: antes da migracao podem nao existir)
+  attempts?: number;
+  next_attempt_at?: string | null;
+  locked_until?: string | null;
+  last_error?: string | null;
+  error_kind?: string | null;
+  status_changed_at?: string | null;
+  timezone_marca?: string | null;
 };
 
 export async function getPost(id: string): Promise<Post | null> {
@@ -45,7 +56,7 @@ export type Analytics = {
 
 /** ranking de posts por funcionário (analista) + quantos posts foram excluídos. */
 export async function postsAnalytics(): Promise<Analytics> {
-  const [{ deleted }] = await sql<{ deleted: number }[]>`
+  const [{ deleted } = { deleted: 0 }] = await sql<{ deleted: number }[]>`
     select count(*)::int as deleted from posts where deleted_at is not null`;
   const ranking = await sql<{ analista: string; total: number; publicados: number }[]>`
     select
@@ -74,6 +85,7 @@ export async function createPost(i: {
   fonte_url?: string | null;
   fonte_label?: string | null;
   imagem_prompt?: string | null;
+  idempotency_key?: string | null;
 }): Promise<Post> {
   const row = {
     brand_id: i.brand_id,
@@ -90,6 +102,7 @@ export async function createPost(i: {
     fonte_url: i.fonte_url ?? null,
     fonte_label: i.fonte_label ?? null,
     imagem_prompt: i.imagem_prompt ?? null,
+    ...(i.idempotency_key ? { idempotency_key: i.idempotency_key } : {}),
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [p] = await sql<Post[]>`insert into posts ${sql(row as any)} returning *`;
@@ -142,4 +155,20 @@ export async function setPostMedia(id: string, media: string[]): Promise<void> {
 /** salva o prompt de imagem editado na tela de Posts */
 export async function setPostImagePrompt(id: string, prompt: string): Promise<void> {
   await sql`update posts set imagem_prompt=${prompt}, updated_at=now() where id=${id}`;
+}
+
+// D11: muda o horario de publicacao (usado por Adiar na fila de aprovacao)
+export async function setPostSchedule(id: string, iso: string): Promise<void> {
+  await sql`update posts set scheduled_at=${iso}, updated_at=now() where id=${id}`;
+}
+
+// D09: salva a legenda editada no detalhe do post
+export async function setPostLegenda(id: string, legenda: string): Promise<void> {
+  await sql`update posts set legenda=${legenda}, updated_at=now() where id=${id}`;
+}
+
+// B04: post ja criado com esta chave de idempotencia (ou null)
+export async function postPorIdempotencia(key: string): Promise<Post | null> {
+  const [p] = await sql<Post[]>`select * from posts where idempotency_key = ${key}`;
+  return p ?? null;
 }

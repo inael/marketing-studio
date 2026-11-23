@@ -123,9 +123,9 @@ export function SectionHead({
 
 // classes reaproveitadas (mantém a chrome consistente)
 export const btnPrimary =
-  "inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas transition-opacity hover:opacity-90 disabled:opacity-50";
+  "inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-medium text-canvas transition-opacity hover:opacity-90 disabled:opacity-50 md:min-h-0";
 export const btnGhost =
-  "inline-flex items-center gap-2 rounded-md border border-line px-4 py-2 text-sm text-dim transition-colors hover:border-line2 hover:text-ink";
+  "inline-flex min-h-11 items-center gap-2 rounded-md border border-line px-4 py-2 text-sm text-dim transition-colors hover:border-line2 hover:text-ink md:min-h-0";
 export const inputCls =
-  "w-full rounded-md border border-line bg-panel2 px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-line2";
+  "w-full min-h-11 rounded-md border border-line bg-panel2 px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-line2 md:min-h-0";
 export const labelCls = "block text-xs font-medium text-dim mb-1.5";

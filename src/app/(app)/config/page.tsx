@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { getSettings } from "@/server/settings";
+import { ConfigTabs } from "@/components/config-tabs";
+import { listPosts } from "@/server/posts";
+import { IaFuncoes } from "@/components/ia-funcoes";
+import { Cofre } from "@/components/cofre";
 import { saveConfig } from "./actions";
 import { TwitterConnect } from "@/components/twitter-connect";
 import { twitterConnected } from "@/server/signals";
@@ -37,11 +41,12 @@ export default async function ConfigPage({
 }: {
   searchParams: Promise<{ ok?: string }>;
 }) {
-  const [{ ok }, s, twConn, brands] = await Promise.all([
+  const [{ ok }, s, twConn, brands, todosPosts] = await Promise.all([
     searchParams,
     getSettings(),
     twitterConnected(),
     listAllBrands(),
+    listPosts(),
   ]);
   const provider = s.ai_provider || "usetokia";
 
@@ -81,6 +86,15 @@ export default async function ConfigPage({
         title="Configurações"
         subtitle="Integrações de IA e credenciais do estúdio"
       />
+      <ConfigTabs atual="integracoes" />
+      {/* M25: as secoes comuns em lista, para ir direto */}
+      <nav aria-label="Seções de configuração" className="mb-6 flex flex-wrap gap-2 text-xs">
+        <Link href="/marcas" className="min-h-11 rounded-md border border-line px-3 py-2 text-dim hover:text-ink md:min-h-0">Marcas · {brands.length}</Link>
+        <Link href="/time" className="min-h-11 rounded-md border border-line px-3 py-2 text-dim hover:text-ink md:min-h-0">Time</Link>
+        <a href="#ia-texto" className="min-h-11 rounded-md border border-line px-3 py-2 text-dim hover:text-ink md:min-h-0">Provedores de IA</a>
+        <a href="#cofre" className="min-h-11 rounded-md border border-line px-3 py-2 text-dim hover:text-ink md:min-h-0">Cofre</a>
+        <a href="/config/aparencia" className="min-h-11 rounded-md border border-line px-3 py-2 text-dim hover:text-ink md:min-h-0">Aparência</a>
+      </nav>
 
       {/* Panorama: o que já está no ar, num relance */}
       <section className="mb-8 max-w-2xl rounded-lg border border-line bg-panel/50 p-5">
@@ -89,28 +103,42 @@ export default async function ConfigPage({
           Resumo do que já está ativo. Cada item abaixo repete o selo na sua seção.
         </p>
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          {/* M25: o que esta com problema vem primeiro */}
           {[
-            { label: provider === "litellm" ? "IA de texto (LiteLLM)" : "IA de texto (UseTokia)", state: aiState },
-            { label: "Higgsfield (imagem)", state: higgsState },
-            { label: "ElevenLabs (narração)", state: elevenState },
-            { label: "Twitter/X (sugestões)", state: twState, badge: twLabel },
-            { label: "Automação", state: autoState, badge: autoLabel },
+            { label: provider === "litellm" ? "IA de texto (LiteLLM)" : "IA de texto (UseTokia)", state: aiState, impacto: "sem IA de texto, sugestões e legendas não são geradas", ancora: "ia-texto" },
+            { label: "Higgsfield (imagem)", state: higgsState, impacto: "sem Higgsfield, a geração de imagem e vídeo fica parada", ancora: "higgsfield" },
+            { label: "ElevenLabs (narração)", state: elevenState, impacto: "sem ElevenLabs, a narração dos roteiros não sai", ancora: "elevenlabs" },
+            { label: "Twitter/X (sugestões)", state: twState, badge: twLabel, impacto: "sem X conectado, as sugestões de Twitter ficam vazias", ancora: "twitter" },
+            { label: "Automação", state: autoState, badge: autoLabel, impacto: "com o piloto automático desligado, posts não saem sozinhos", ancora: "automacao" },
             {
               label: "Contas das marcas",
               state: stateOf([igOn > 0, liOn > 0]),
               badge: `${igOn} Instagram · ${liOn} LinkedIn`,
+              impacto: `${todosPosts.filter((p) => !p.deleted_at && (p.status === "failed" || p.status === "scheduled" || p.status === "approved")).length} post(s) parados: sem conta conectada, nada publica`,
+              ancora: "contas",
             },
-          ].map((row) => (
+          ].sort((a, b) => Number(a.state === "ok") - Number(b.state === "ok")).map((row) => (
             <li
               key={row.label}
               className="flex items-center justify-between gap-3 rounded-md border border-line bg-panel2/60 px-3 py-2"
             >
-              <span className="min-w-0 truncate text-xs text-dim">{row.label}</span>
+              <span className="min-w-0">
+                <span className="block truncate text-xs text-dim">{row.label}</span>
+                {row.state !== "ok" && (
+                  <span className="block text-[11px] text-warn">
+                    {row.impacto} · 
+                    <a href={`#${row.ancora}`} className="text-info hover:underline">destravar →</a>
+                  </span>
+                )}
+              </span>
               <ConnBadge state={row.state} label={row.badge} />
             </li>
           ))}
         </ul>
       </section>
+
+      <IaFuncoes provider={provider} usetokiaOk={tokiaState === "ok"} litellmOk={litellmState === "ok"} />
+      <Cofre marcas={brands.filter((b) => b.ativo).map((b) => ({ slug: b.slug, nome: b.nome }))} settings={s} />
 
       {ok && (
         <p className="mb-6 rounded-md border border-ok/30 bg-ok/5 px-3 py-2 text-sm text-ok">
@@ -120,7 +148,7 @@ export default async function ConfigPage({
 
       <form action={saveConfig} className="max-w-2xl space-y-8">
         {/* IA de texto */}
-        <section className="space-y-5 rounded-lg border border-line bg-panel/50 p-6">
+        <section id="ia-texto" className="space-y-5 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="IA de texto (legenda)"
             hint="Provedor OpenAI-compatível usado pra gerar/reescrever legendas com o tom de voz da marca."
@@ -195,7 +223,7 @@ export default async function ConfigPage({
         </section>
 
         {/* Higgsfield */}
-        <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+        <section id="higgsfield" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="Higgsfield (imagem)"
             hint={
@@ -225,7 +253,7 @@ export default async function ConfigPage({
         </section>
 
         {/* ElevenLabs */}
-        <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+        <section id="elevenlabs" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="ElevenLabs (narração)"
             hint="API key e voz padrão pra narrar reels e vídeos quando precisar."
@@ -245,7 +273,7 @@ export default async function ConfigPage({
         </section>
 
         {/* Twitter/X (scraper self-host) */}
-        <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+        <section id="twitter" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="Twitter/X (fonte de sugestões)"
             hint={
@@ -286,7 +314,7 @@ export default async function ConfigPage({
         </section>
 
         {/* Automação */}
-        <section className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+        <section id="automacao" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="Automação (piloto automático)"
             hint="Deixe o time trabalhar sozinho. Você mantém o controle: nada é publicado sem que você ligue explicitamente o gestor."
@@ -322,7 +350,7 @@ export default async function ConfigPage({
       </form>
 
       {/* Contas das marcas — read-only aqui; conecta na página da marca */}
-      <section className="mt-8 max-w-2xl space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+      <section id="contas" className="mt-8 max-w-2xl space-y-4 rounded-lg border border-line bg-panel/50 p-6">
         <SectionHead
           title="Contas conectadas das marcas"
           hint="Instagram e LinkedIn são conectados por marca. Aqui só mostramos o estado; para conectar, abra a marca."

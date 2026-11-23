@@ -24,14 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.theme==='dark')document.documentElement.dataset.theme='dark';}catch(e){}",
+              "try{var a=JSON.parse(localStorage.getItem('ms_aparencia')||'{}');var d=document.documentElement;var e=a.tema==='escuro'||(a.tema==='sistema'&&matchMedia('(prefers-color-scheme: dark)').matches)||localStorage.theme==='dark';if(e)d.dataset.theme='dark';if(a.densidade==='compacta')d.dataset.densidade='compacta';if(a.texto)d.dataset.texto=a.texto;if(a.contraste)d.dataset.contraste='alto';}catch(x){}",
           }}
         />
         {children}

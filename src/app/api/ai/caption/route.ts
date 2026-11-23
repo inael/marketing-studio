@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
-import { getAiConfig } from "@/server/settings";
+import { getAiConfig, getAiConfigReserva } from "@/server/settings";
 import { getBrandById } from "@/server/brands";
 import { logUsage, usageFrom } from "@/server/usage";
+import { checarLimite } from "@/lib/limite";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,6 +16,11 @@ export async function POST(req: NextRequest) {
   if (!isAuthenticated) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
+
+  // B45: ate 20 legendas por minuto por usuario
+  const quem = (await getLogtoContext(logtoConfig)).claims?.sub ?? "anon";
+  const lim = checarLimite(`caption:${quem}`, 20, 60000);
+  if (!lim.ok) return NextResponse.json({ error: `muitas gerações seguidas: tente de novo em ${lim.esperarS}s`, esperarS: lim.esperarS }, { status: 429 });
 
   const cfg = await getAiConfig();
   if (!cfg) {
@@ -34,6 +40,7 @@ export async function POST(req: NextRequest) {
     template?: string;
     assunto?: string;
     segmento?: string;
+    stream?: boolean;
   };
   const brand = body.brand_id ? await getBrandById(body.brand_id) : null;
   if (!brand) {
@@ -46,6 +53,7 @@ export async function POST(req: NextRequest) {
     persuasivo: "persuasivo, com foco em conversão e prova de valor",
     alegre: "alegre e animado, com energia positiva",
     amigavel: "amigável e acolhedor, próximo do público",
+    didatico: "didático e explicativo, passo a passo e com exemplo",
   };
   const TAMANHO: Record<string, { desc: string; tokens: number }> = {
     curta: { desc: "1 frase curta e impactante", tokens: 140 },
@@ -74,8 +82,21 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
     .join("\n");
 
+  // B07: modo em partes. O texto chega conforme e, no fim, um marcador (\u0001) diz se terminou.
+  if (body.stream) {
+    return streamDoProvedor(cfg, {
+      model: cfg.model,
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: user },
+      ],
+      temperature: 0.8,
+      max_tokens: tam.tokens,
+    }, brand.id);
+  }
+
   try {
-    const r = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+    const chamar = (c: { baseUrl: string; apiKey: string; model: string }) => fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -91,6 +112,12 @@ export async function POST(req: NextRequest) {
         max_tokens: tam.tokens,
       }),
     });
+    let r = await chamar(cfg);
+    // B38: falha transitoria no principal (rede, 5xx ou limite): tenta o provedor de reserva uma vez
+    if (r.status >= 500 || r.status === 429) {
+      const alt = await getAiConfigReserva();
+      if (alt) r = await chamar(alt);
+    }
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
       return NextResponse.json(
@@ -110,4 +137,69 @@ export async function POST(req: NextRequest) {
       { status: 502 }
     );
   }
+}
+
+// B07: repassa o texto do provedor conforme chega. Limite de 30 s; se cair no meio,
+// manda o que ja chegou (parcial) com o motivo, para a tela guardar como rascunho.
+function streamDoProvedor(cfg: { baseUrl: string; apiKey: string; model: string }, payload: Record<string, unknown>, brandId: string): Response {
+  const enc = new TextEncoder();
+  const ctrl = new AbortController();
+  const limite = setTimeout(() => ctrl.abort(), 30000);
+  const stream = new ReadableStream({
+    async start(controller) {
+      let texto = "";
+      let usage: unknown = undefined;
+      try {
+        const r = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+          body: JSON.stringify({ ...payload, stream: true, stream_options: { include_usage: true } }),
+          signal: ctrl.signal,
+        });
+        if (!r.ok || !r.body) throw new Error(`provedor retornou ${r.status}`);
+        const reader = r.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let idx: number;
+          while ((idx = buf.indexOf("\n")) >= 0) {
+            const linha = buf.slice(0, idx).trim();
+            buf = buf.slice(idx + 1);
+            if (!linha.startsWith("data:")) continue;
+            const dados = linha.slice(5).trim();
+            if (!dados || dados === "[DONE]") continue;
+            try {
+              const j = JSON.parse(dados);
+              if (j.usage) usage = j.usage;
+              const d = String(j?.choices?.[0]?.delta?.content ?? "");
+              if (d) {
+                texto += d;
+                controller.enqueue(enc.encode(d));
+              }
+            } catch {
+              // linha que nao e JSON completo: ignora
+            }
+          }
+        }
+        const final = texto.trim();
+        if (!final) throw new Error("provedor não retornou texto");
+        await logUsage({ persona: null, tipo: "legenda", model: cfg.model, brand_id: brandId, ...usageFrom({ usage }) });
+        controller.enqueue(enc.encode("\u0001" + JSON.stringify({ ok: true, texto: final })));
+      } catch (e) {
+        const motivo = ctrl.signal.aborted ? "tempo esgotado (30 s)" : e instanceof Error ? e.message : "falha na IA";
+        controller.enqueue(enc.encode("\u0001" + JSON.stringify({ ok: false, motivo, parcial: texto.trim() })));
+      } finally {
+        clearTimeout(limite);
+        controller.close();
+      }
+    },
+    cancel() {
+      ctrl.abort();
+      clearTimeout(limite);
+    },
+  });
+  return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
 }

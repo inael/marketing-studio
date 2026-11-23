@@ -90,3 +90,24 @@ body {
   border-radius: 999px;
   border: 3px solid var(--color-canvas);
 }
+
+/* D47: densidade compacta reduz o tamanho base (tudo em rem acompanha) */
+html[data-densidade="compacta"] {
+  font-size: 14px;
+}
+
+/* M31: tamanho do texto e contraste reforcado (atributos no html, ajustados em Aparencia) */
+html[data-texto="grande"] {
+  font-size: 18px;
+}
+html[data-texto="muito"] {
+  font-size: 20px;
+}
+html[data-contraste="alto"] {
+  --line: #8a8a92;
+  --line2: #52525b;
+}
+html[data-contraste="alto"][data-theme="dark"] {
+  --line: #5a5a62;
+  --line2: #a1a1aa;
+}

@@ -21,7 +21,7 @@ async function requireAuth() {
 /** Aceita uma sugestão salva: vira rascunho carregando analista + fonte + prompt de imagem. */
 export async function acceptSuggestion(
   suggestionId: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; postId: string } | { ok: false; error: string }> {
   if (!(await requireAuth())) return { ok: false, error: "sessão expirada, faça login de novo" };
 
   const s = await getSuggestion(suggestionId);
@@ -34,7 +34,7 @@ export async function acceptSuggestion(
     : "image";
 
   try {
-    await createPost({
+    const novo = await createPost({
       brand_id: s.brand_id,
       tipo,
       formato: "sem_personagem",
@@ -51,7 +51,7 @@ export async function acceptSuggestion(
     await markAccepted(suggestionId);
     revalidatePath("/posts");
     revalidatePath("/sugestoes");
-    return { ok: true };
+    return { ok: true, postId: novo.id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "erro ao criar rascunho" };
   }

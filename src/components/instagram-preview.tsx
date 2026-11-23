@@ -37,14 +37,130 @@ export function InstagramPreview({
   const multi = media.length > 1;
   const tags = hashtags.filter(Boolean);
   const [idx, setIdx] = useState(0);
+  const [vista, setVista] = useState<"feed" | "grade" | "story">("feed");
+  // M06: a legenda corta como no celular do publico; "mais" expande
+  const [expandida, setExpandida] = useState(false);
+  // M46: reel em tela cheia 9:16 com as zonas que a interface da rede cobre
+  const [telaCheia, setTelaCheia] = useState(false);
+  // D10: proporcao real da imagem (medida ao carregar): avisa se o feed vai cortar
+  const [razao, setRazao] = useState<number | null>(null);
+  const avisoCorte = razao === null || tipo === "reel" ? null : razao < 0.8 ? "o feed vai cortar as laterais (mais alta que 4:5)" : razao > 1.91 ? "o feed vai cortar em cima e embaixo (mais larga que 1,91:1)" : null;
+  const [zona, setZona] = useState<"topo" | "base" | null>(null);
   const cur = media.length ? Math.min(idx, media.length - 1) : 0;
   const go = (delta: number) => (e: React.MouseEvent) => {
     e.stopPropagation();
     setIdx((i) => Math.max(0, Math.min(media.length - 1, i + delta)));
   };
 
+  // D10: abas Feed / Grade / Story, como o post aparece em cada lugar do Instagram
+  const tabsBar = (
+    <div role="tablist" aria-label="Visualização" className="flex gap-0.5 rounded-md bg-panel2 p-0.5">
+      {(["feed", "grade", "story"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          role="tab"
+          aria-selected={vista === v}
+          onClick={(e) => {
+            e.stopPropagation();
+            setVista(v);
+          }}
+          className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+            vista === v ? "bg-panel text-ink" : "text-faint hover:text-dim"
+          }`}
+        >
+          {v === "feed" ? "Feed" : v === "grade" ? "Grade" : "Story"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (!compact && vista === "grade") {
+    return (
+      <div className="overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="border-b border-line px-3 py-1.5">{tabsBar}</div>
+        <div className="grid grid-cols-3 gap-px bg-line">
+          {[0, 1, 2, 3, 4, 5].map((k) => (
+            <div key={k} className="aspect-square bg-panel2">
+              {k === 0 && media[cur] && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={media[cur]} alt="" onLoad={(e) => setRazao(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} className="h-full w-full object-cover" />
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="px-3 py-2 text-[11px] text-faint">Na grade do perfil: a primeira casa é este post.</p>
+      </div>
+    );
+  }
+
+  if (!compact && vista === "story") {
+    return (
+      <div className="overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="border-b border-line px-3 py-1.5">{tabsBar}</div>
+        <div className="relative aspect-[9/16] bg-black">
+          {media[cur] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={media[cur]} alt="" onLoad={(e) => setRazao(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-xs text-faint">sua imagem aparece aqui</div>
+          )}
+          <div className="absolute inset-x-2 top-2 h-0.5 overflow-hidden rounded bg-white/35">
+            <div className="h-full w-1/3 bg-white" />
+          </div>
+          <div className="absolute left-2 top-4 flex items-center gap-2">
+            <Avatar src={picture} nome={username} cor={cor} size={28} ring />
+            <span className="text-[12px] font-semibold text-white drop-shadow">{username}</span>
+          </div>
+          {legenda && (
+            <p className="absolute inset-x-3 bottom-4 line-clamp-3 text-[13px] text-white drop-shadow">{legenda}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (telaCheia) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4" onClick={() => setTelaCheia(false)}>
+        <div className="relative aspect-[9/16] h-full max-h-[90vh] overflow-hidden rounded-lg bg-black" onClick={(e) => e.stopPropagation()}>
+          {media[cur] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={media[cur]} alt="" onLoad={(e) => setRazao(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full place-items-center text-xs text-faint">sua imagem aparece aqui</div>
+          )}
+          <button
+            type="button"
+            onClick={() => setZona(zona === "topo" ? null : "topo")}
+            className="absolute inset-x-0 top-0 h-[14%] bg-red-500/25 text-left text-[11px] text-white"
+          >
+            <span className="px-2 pt-1 block">{zona === "topo" ? "o topo mostra o nome da conta e o áudio: não coloque texto aqui" : ""}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setZona(zona === "base" ? null : "base")}
+            className="absolute inset-x-0 bottom-0 h-[28%] bg-red-500/25 text-left text-[11px] text-white"
+          >
+            <span className="block px-2 pb-1 mt-auto">{zona === "base" ? "a base mostra a legenda e os botões: deixe o texto acima dela" : ""}</span>
+          </button>
+          <button type="button" onClick={() => setTelaCheia(false)} className="absolute right-2 top-2 min-h-11 min-w-11 rounded-full bg-black/60 text-white" aria-label="Fechar">×</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-panel">
+      {/* D10: faixa com o formato e o aviso de corte, como o público vê */}
+      {!compact && (
+        <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-1.5 text-[10px] text-faint">
+          {tabsBar}
+          <span className="truncate">
+            {avisoCorte ? avisoCorte : tipo === "reel" ? "capa pode cortar o texto da borda" : multi ? "slides deslizam na ordem" : "sem corte da imagem"}
+          </span>
+        </div>
+      )}
       {/* header */}
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <Avatar src={picture} nome={username} cor={cor} size={32} ring />
@@ -63,7 +179,7 @@ export function InstagramPreview({
       <div className={`relative w-full bg-panel2 ${tipo === "reel" ? "aspect-[9/16]" : "aspect-square"}`}>
         {media[cur] ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={media[cur]} alt="" className="h-full w-full object-cover" />
+          <img src={media[cur]} alt="" onLoad={(e) => setRazao(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} className="h-full w-full object-cover" />
         ) : (
           <div className="grid h-full w-full place-items-center text-xs text-faint">
             {tipo === "reel" ? "seu reel aparece aqui" : "sua imagem aparece aqui"}
@@ -74,6 +190,11 @@ export function InstagramPreview({
           <span className="absolute right-2 top-2 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-semibold text-white">
             REEL
           </span>
+        )}
+        {tipo === "reel" && !compact && (
+          <button type="button" onClick={() => setTelaCheia(true)} className="absolute left-2 bottom-2 min-h-11 rounded-md bg-black/55 px-3 text-[11px] text-white">
+            Tela cheia 9:16
+          </button>
         )}
         {multi && tipo !== "reel" && (
           <span className="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
@@ -141,13 +262,18 @@ export function InstagramPreview({
         } text-[13px] leading-snug`}
       >
         {legenda || tags.length > 0 ? (
-          <p className={`whitespace-pre-wrap break-words text-ink ${compact ? "line-clamp-2" : ""}`}>
+          <>
+          <p className={`whitespace-pre-wrap break-words text-ink ${expandida ? "" : "line-clamp-2"}`}>
             <span className="font-semibold">{username} </span>
             {legenda}
             {tags.length > 0 && (
               <span className="text-info"> {tags.map((t) => `#${t}`).join(" ")}</span>
             )}
           </p>
+          {!expandida && (legenda.length > 90 || tags.length > 0) && (
+            <button type="button" onClick={() => setExpandida(true)} className="text-[13px] text-faint hover:text-dim">mais</button>
+          )}
+          </>
         ) : (
           <p className="text-faint">a legenda aparece aqui</p>
         )}

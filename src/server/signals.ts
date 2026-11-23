@@ -1,3 +1,4 @@
+import { comCache } from "@/lib/cache";
 import type { IgAccount } from "./graph";
 
 // ---- RSS ----
@@ -13,7 +14,12 @@ function tagText(block: string, name: string): string {
 
 export type RssItem = { title: string; summary: string; link: string };
 
-export async function fetchRss(url: string): Promise<RssItem[]> {
+// B24: cada feed fica em cache por 15 min (as sugestoes nao precisam buscar a cada abertura)
+export function fetchRss(url: string): Promise<RssItem[]> {
+  return comCache(`rss:${url}`, 15 * 60 * 1000, () => fetchRssDireto(url));
+}
+
+async function fetchRssDireto(url: string): Promise<RssItem[]> {
   try {
     const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 MarketingStudio" } });
     if (!res.ok) return [];

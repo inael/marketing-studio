@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   acceptSuggestion,
@@ -42,6 +42,21 @@ const TABS: { v: Tab; label: string; ready: boolean }[] = [
 ];
 const PHRASES = ["lendo as notícias", "olhando os concorrentes", "pensando no ângulo", "escrevendo a legenda", "imaginando a imagem"];
 
+// D28: nota de adequacao 0-100 calculada do que a sugestao traz (legenda, hashtags, angulo, imagem, fonte)
+function adequacao(s: Suggestion): number {
+  let n = 0;
+  const len = s.legenda?.length ?? 0;
+  if (len >= 80 && len <= 900) n += 35;
+  else if (len > 0) n += 15;
+  const tags = s.hashtags ?? [];
+  if (tags.length >= 2 && tags.length <= 8) n += 15;
+  if (s.angulo) n += 15;
+  if (s.imagem_prompt) n += 15;
+  if (s.ref_url) n += 10;
+  if (s.titulo) n += 10;
+  return Math.min(100, n);
+}
+
 export function Suggestions({
   brands,
   initial,
@@ -64,6 +79,12 @@ export function Suggestions({
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  // D28: cartoes de nota baixa ficam recolhidos ate o usuario abrir
+  const [abertas, setAbertas] = useState<Set<string>>(new Set());
+  // D29: sugestoes que ja viraram rascunho: ficam na tela com o vinculo de origem
+  const [criados, setCriados] = useState<Set<string>>(new Set());
+  // M18: deslizar o cartao para a esquerda descarta a sugestao
+  const toque = useRef<number | null>(null);
 
   const brand = brands.find((b) => b.id === brandId);
   const brandItems = items.filter((s) => s.brand_id === brandId);
@@ -119,7 +140,7 @@ export function Suggestions({
   const aceitar = (id: string) =>
     withBusy(id, async () => {
       const res = await acceptSuggestion(id);
-      if (res.ok) setItems((prev) => prev.filter((s) => s.id !== id));
+      if (res.ok) setCriados((c) => new Set(c).add(id));
       else setError(res.error);
     });
   const apagar = (id: string) =>
@@ -189,8 +210,48 @@ export function Suggestions({
     }
   }
 
-  const card = (s: Suggestion) => (
-    <div key={s.id} className="grid gap-4 rounded-lg border border-line bg-panel p-4 md:grid-cols-2">
+  // D28: nota abaixo de 50 vira uma linha recolhida
+  const card = (s: Suggestion) => {
+    if (criados.has(s.id)) {
+      return (
+        <div key={s.id} className="space-y-2">
+          <div className="flex items-center justify-between gap-3 rounded-md border border-ok/40 bg-panel2 px-3 py-2 text-xs">
+            <span className="text-ok">rascunho criado a partir desta sugestão</span>
+            <Link href="/posts" className="text-info hover:underline">ver em Posts →</Link>
+          </div>
+          {cardCompleto(s)}
+        </div>
+      );
+    }
+    const nota = adequacao(s);
+    if (nota >= 50 || abertas.has(s.id)) return cardCompleto(s);
+    return (
+      <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-line bg-panel px-4 py-2.5">
+        <span className="min-w-0 truncate text-sm text-dim">{s.titulo || "Ideia"}</span>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-[11px] text-bad">adequação {nota}/100</span>
+          <button type="button" onClick={() => setAbertas((a) => new Set(a).add(s.id))} className="text-xs text-info hover:underline">
+            mostrar
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const cardCompleto = (s: Suggestion) => (
+    <div
+      key={s.id}
+      onTouchStart={(e) => {
+        toque.current = e.touches[0].clientX;
+      }}
+      onTouchEnd={(e) => {
+        const x0 = toque.current;
+        toque.current = null;
+        if (x0 === null) return;
+        if (e.changedTouches[0].clientX - x0 < -80) apagar(s.id);
+      }}
+      className="grid gap-4 rounded-lg border border-line bg-panel p-4 md:grid-cols-2"
+    >
       {/* coluna esquerda: a postagem (editável) */}
       <div className="flex flex-col">
         <div className="flex items-start justify-between gap-2">
@@ -200,6 +261,8 @@ export function Suggestions({
           </label>
           <div className="flex shrink-0 items-center gap-1.5">
             <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-faint">{TIPO[s.formato ?? "image"] ?? s.formato}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[11px] ${adequacao(s) >= 70 ? "text-ok" : "text-warn"}`}>nota {adequacao(s)}</span>
+            <span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-dim">{s.grupo === "noticia" ? "Notícia" : s.grupo === "concorrente" ? "Concorrente" : "X"}</span>
             <button type="button" onClick={() => apagar(s.id)} disabled={busy.has(s.id)} title="Apagar" className="grid h-6 w-6 place-items-center rounded-full text-faint hover:bg-panel2 hover:text-bad disabled:opacity-40">
               ×
             </button>
@@ -246,13 +309,26 @@ export function Suggestions({
         )}
 
         <div className="mt-auto flex items-center gap-2 pt-3">
-          <button type="button" onClick={() => aceitar(s.id)} disabled={busy.has(s.id)} className="rounded-md border border-line px-2.5 py-1 text-xs text-dim hover:border-ok/50 hover:text-ok disabled:opacity-50">
-            {busy.has(s.id) ? "criando…" : "Aceitar e criar rascunho"}
+          <button type="button" onClick={() => aceitar(s.id)} disabled={busy.has(s.id) || criados.has(s.id)} className="rounded-md border border-line px-2.5 py-1 text-xs text-dim hover:border-ok/50 hover:text-ok disabled:opacity-50">
+            {busy.has(s.id) ? "criando…" : "Transformar em rascunho"}
           </button>
         </div>
       </div>
 
-      {/* coluna direita: preview (imagem = prompt) */}
+      {/* D29: a coluna da direita mostra o rascunho gerado a partir desta sugestao (vinculo de origem) */}
+      {criados.has(s.id) ? (
+        <div className="space-y-2 overflow-hidden rounded-lg border border-ok/40 bg-panel2/40 p-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-ok">Rascunho gerado</span>
+            <Link href="/posts" className="text-info hover:underline">abrir em Posts →</Link>
+          </div>
+          <p className="text-[11px] text-faint">Criado a partir desta sugestão · {brand?.nome ?? "marca"} · status: rascunho</p>
+          <div className="whitespace-pre-wrap text-sm text-ink">{s.legenda}</div>
+          {(s.hashtags ?? []).length > 0 && <div className="text-xs text-info">{s.hashtags.map((h) => `#${h}`).join(" ")}</div>}
+          <p className="text-[11px] text-faint">{s.imagem_prompt ? "Arte: prompt definido; gere a imagem em Posts" : "Arte: sem prompt ainda"}</p>
+        </div>
+      ) : (
+      /* coluna direita: preview (imagem = prompt) */
       <div className="overflow-hidden rounded-lg border border-line bg-panel2/40">
         <div className="flex items-center gap-2 px-3 py-2">
           {brand?.avatar ? (
@@ -282,6 +358,7 @@ export function Suggestions({
           {(s.hashtags ?? []).length > 0 && <span className="text-info"> {s.hashtags.map((h) => `#${h}`).join(" ")}</span>}
         </div>
       </div>
+      )}
     </div>
   );
 

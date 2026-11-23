@@ -37,6 +37,18 @@ export async function getAiConfig(
   return { provider, baseUrl, apiKey, model };
 }
 
+// B38: provedor de reserva = o outro provedor de texto, se estiver configurado
+export async function getAiConfigReserva(settings?: Record<string, string>): Promise<AiConfig | null> {
+  const s = settings ?? (await getSettings());
+  const principal = s.ai_provider || "usetokia";
+  const outro = principal === "litellm" ? "usetokia" : "litellm";
+  const baseUrl = s[`${outro}_base_url`];
+  const apiKey = s[`${outro}_api_key`];
+  const model = s[`${outro}_model`] || "claude-sonnet-4-6";
+  if (!baseUrl || !apiKey) return null;
+  return { provider: outro, baseUrl, apiKey, model };
+}
+
 export type HiggsfieldConfig = { apiKey: string; apiSecret: string; model: string };
 export async function getHiggsfield(
   settings?: Record<string, string>
