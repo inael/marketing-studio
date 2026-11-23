@@ -314,48 +314,16 @@ export function CreateForm({
   }
 
   // M45: envio com progresso real; se a conexao cai, retoma do arquivo onde parou
-  // B05: a imagem vai direto ao armazenamento com URL assinada; o servidor confere ao final
-  async function enviarArquivo(blob: Blob, name: string, onPct: (p: number) => void): Promise<string> {
-    const mime = blob.type || "image/jpeg";
-    // B06: dimensoes lidas do arquivo antes do envio
-    let dim: { largura?: number; altura?: number } = {};
-    try {
-      const bmp = await createImageBitmap(blob);
-      dim = { largura: bmp.width, altura: bmp.height };
-      bmp.close?.();
-    } catch {
-      dim = {};
-    }
-    const pedido = await fetch("/api/media/presign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome: name, mime, tamanho: blob.size, brandId: brand?.id ?? "" }),
-    });
-    if (sessaoExpirou(pedido)) throw new Error("sessão expirada");
-    const dados = await pedido.json();
-    if (!pedido.ok) throw new Error(dados.error ?? "falha no envio");
-    await new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", dados.putUrl as string);
-      xhr.setRequestHeader("Content-Type", mime);
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onPct(Math.round((e.loaded / e.total) * 100));
-      };
-      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("envio recusado pelo armazenamento")));
-      xhr.onerror = () => reject(new Error("conexão caiu"));
-      xhr.send(blob);
-    });
-    const conf = await fetch("/api/media/confirmar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: dados.id, key: dados.key, tamanho: blob.size, mime, largura: dim.largura, altura: dim.altura }),
-    });
-    const cd = await conf.json();
-    if (!conf.ok) {
-      const lista = (cd.problemas as { motivo: string; correcao: string }[] | undefined) ?? [];
-      throw new Error(lista.length ? lista.map((p) => `${p.motivo} (${p.correcao})`).join("; ") : (cd.error ?? "o arquivo não confere"));
-    }
-    return dados.url as string;
+  // envio de imagem pelo servidor (/api/media): funciona sem depender de CORS no bucket
+  async function enviarArquivo(blob: Blob, name: string): Promise<string> {
+    const fd = new FormData();
+    fd.append("file", blob, name);
+    fd.append("brand_id", brand?.id ?? "");
+    const r = await fetch("/api/media", { method: "POST", body: fd });
+    if (sessaoExpirou(r)) throw new Error("sessão expirada");
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error ?? "falha no upload");
+    return data.url as string;
   }
 
   async function processar(fila: { blob: Blob; name: string }[]) {
@@ -366,9 +334,7 @@ export function CreateForm({
       while (restante.length) {
         const item = restante[0];
         const feitos = fila.length - restante.length;
-        const url = await enviarArquivo(item.blob, item.name, (pct) =>
-          setUpProg({ nome: item.name, pct, feitos, total: fila.length }),
-        );
+        const url = await enviarArquivo(item.blob, item.name);
         setMedia((m) => [...m, url]);
         restante.shift();
       }
