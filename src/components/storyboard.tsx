@@ -18,6 +18,7 @@ type Scene = {
   movimento: string;
   frameUrl?: string;
   videoUrl?: string;
+  aceita?: boolean; // D27: cena aceita pelo revisor
   fBusy?: boolean;
   vBusy?: boolean;
   err?: string;
@@ -132,6 +133,36 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
     else setError(res.error);
   }
 
+  // D27: reordena uma cena e marca/desmarca como aceita
+  const mover = (i: number, dir: -1 | 1) =>
+    setScenes((lista) => {
+      const j = i + dir;
+      if (j < 0 || j >= lista.length) return lista;
+      const copia = [...lista];
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
+  // D27: faixa de cenas: selecionar, arrastar para reordenar e painel da cena escolhida
+  const [sel, setSel] = useState(0);
+  const [arrasto, setArrasto] = useState<number | null>(null);
+  const moverPara = (de: number, para: number) => {
+    if (de === para || para < 0 || para >= scenes.length) return;
+    setScenes((l) => {
+      const c = [...l];
+      const [x] = c.splice(de, 1);
+      c.splice(para, 0, x);
+      return c;
+    });
+    setSel(para);
+  };
+  const aceitar = (i: number) => setScenes((lista) => lista.map((x, j) => (j === i ? { ...x, aceita: !x.aceita } : x)));
+
+  // D26: tempo estimado de cada cena (pela fala) e ato do roteiro (gancho, desenvolvimento, chamada)
+  const tempos = scenes.map((sc) => Math.max(3, Math.round(sc.narracao.trim().split(/s+/).filter(Boolean).length / 2.5)));
+  const acumulado = tempos.reduce<number[]>((acc, t) => [...acc, (acc[acc.length - 1] ?? 0) + t], []);
+  const duracaoTotal = acumulado[acumulado.length - 1] ?? 0;
+  const atoDe = (i: number) => (i === 0 ? "Gancho" : i === scenes.length - 1 && scenes.length > 1 ? "Chamada" : "Desenvolvimento");
+
   return (
     <div className="space-y-8">
       {/* Briefing */}
@@ -202,6 +233,41 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
 
       {/* Cenas */}
       {scenes.length > 0 && (
+        <>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {scenes.map((sc, i) => (
+            <button
+              key={i}
+              type="button"
+              draggable
+              onDragStart={() => setArrasto(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (arrasto !== null) moverPara(arrasto, i);
+                setArrasto(null);
+              }}
+              onClick={() => setSel(i)}
+              className={`min-w-32 shrink-0 cursor-grab rounded-md border p-2 text-left text-xs ${sel === i ? "border-line2 bg-panel2" : "border-line"}`}
+            >
+              <div className="flex justify-between">
+                <span className="text-dim">{i + 1}</span>
+                <span className={sc.aceita ? "text-ok" : "text-faint"}>{sc.aceita ? "aceita" : "nova"}</span>
+              </div>
+              <div className="mt-1 truncate text-faint">{sc.narracao || "sem narração"}</div>
+            </button>
+          ))}
+        </div>
+        {scenes[sel] && (
+          <div className="rounded-md border border-line p-3 text-xs">
+            <div className="mb-2 flex justify-between gap-3 text-faint">
+              <span className="truncate">{scenes[sel - 1] ? `← ${scenes[sel - 1].narracao.slice(0, 30)}` : ""}</span>
+              <span>Cena {sel + 1} de {scenes.length}</span>
+              <span className="truncate">{scenes[sel + 1] ? `${scenes[sel + 1].narracao.slice(0, 30)} →` : ""}</span>
+            </div>
+            <p className="text-sm text-ink">{scenes[sel].narracao}</p>
+          </div>
+        )}
+        <p className="text-xs text-faint">Roteiro em três atos · duração estimada {duracaoTotal}s</p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {scenes.map((sc, i) => (
             <div key={i} className="flex flex-col overflow-hidden rounded-lg border border-line bg-panel">
@@ -221,11 +287,20 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
                 </span>
               </div>
               <div className="flex flex-1 flex-col gap-2 p-3">
+                <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-faint">
+                  <span>{atoDe(i)} · {acumulado[i] - tempos[i]}s a {acumulado[i]}s</span>
+                  <span className={sc.aceita ? "text-ok" : "text-faint"}>{sc.aceita ? "aceita" : "nova"}</span>
+                </div>
                 <div className="text-sm font-medium text-ink">{sc.titulo}</div>
-                <p className="text-xs text-dim">{sc.narracao}</p>
-                <p className="text-[11px] text-faint">{sc.cena}</p>
+                <p className="text-xs text-dim"><span className="text-faint">Fala:</span> {sc.narracao}</p>
+                <p className="text-[11px] text-faint"><span className="text-faint">Tela:</span> {sc.cena}</p>
                 {sc.err && <p className="text-[11px] text-bad">{sc.err}</p>}
                 <div className="mt-auto flex flex-wrap gap-2 pt-2">
+                  <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} className="min-h-11 min-w-11 rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-ink disabled:opacity-40 md:min-h-0 md:min-w-0" aria-label="Mover para cima">↑</button>
+                  <button type="button" onClick={() => mover(i, 1)} disabled={i === scenes.length - 1} className="min-h-11 min-w-11 rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-ink disabled:opacity-40 md:min-h-0 md:min-w-0" aria-label="Mover para baixo">↓</button>
+                  <button type="button" onClick={() => aceitar(i)} className={`min-h-11 rounded-md border px-2.5 py-1 text-xs md:min-h-0 transition-colors ${sc.aceita ? "border-ok/40 text-ok" : "border-line text-dim hover:text-ink"}`}>
+                    {sc.aceita ? "Aceita" : "Aceitar"}
+                  </button>
                   <button type="button" onClick={() => gerarFrame(i)} disabled={sc.fBusy} className="rounded-md border border-line px-2.5 py-1 text-xs text-dim transition-colors hover:text-ink disabled:opacity-50">
                     {sc.fBusy ? "…" : sc.frameUrl ? "Refazer frame" : "Gerar frame"}
                   </button>
@@ -247,6 +322,7 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
             </div>
           ))}
         </div>
+        </>
       )}
     </div>
   );

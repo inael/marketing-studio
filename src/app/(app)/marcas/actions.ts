@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { updateBrand, listAllBrands, type BrandPatch } from "@/server/brands";
-import { addTimeslot, removeTimeslot } from "@/server/timeslots";
+import { addTimeslot, removeTimeslot, listTimeslots } from "@/server/timeslots";
+import { exigirMarca, auditar } from "@/server/permissoes";
 import { addSource, removeSource, type SourceKind } from "@/server/sources";
 import { getOauthSession, deleteOauthSession } from "@/server/oauth";
 import { resolveIg } from "@/server/planner";
@@ -19,6 +20,8 @@ async function requireAuth() {
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 export async function saveBrand(id: string, formData: FormData) {
+  await exigirMarca(id, "editar", "saveBrand");
+  await auditar("marca.salvar", String(formData.get("nome") ?? id), id);
   await requireAuth();
 
   const patch: BrandPatch = {
@@ -44,6 +47,7 @@ export async function saveBrand(id: string, formData: FormData) {
 }
 
 export async function addSlot(brandId: string, slug: string, formData: FormData) {
+  await exigirMarca(brandId, "editar", "addSlot");
   await requireAuth();
   const weekday = Number(formData.get("weekday"));
   const [h, m] = str(formData, "time").split(":").map(Number);
@@ -160,4 +164,15 @@ export async function finalizeLinkedin(
   }
   revalidatePath(`/marcas/${slug}`);
   redirect(`/marcas/${slug}`);
+}
+
+// D25: pintar a grade. Clicar numa celula liga ou desliga aquela janela.
+export async function toggleSlot(brandId: string, slug: string, weekday: number, hour: number) {
+  await exigirMarca(brandId, "editar", "toggleSlot");
+  await requireAuth();
+  const atuais = await listTimeslots(brandId);
+  const achado = atuais.find((s) => s.weekday === weekday && s.hour === hour);
+  if (achado) await removeTimeslot(achado.id);
+  else await addTimeslot(brandId, weekday, hour, 0);
+  revalidatePath(`/marcas/${slug}`);
 }

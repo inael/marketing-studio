@@ -11,6 +11,14 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
+  // D35: a 100% do teto mensal a geracao de imagem e pausada
+  {
+    const { getSettings } = await import("@/server/settings");
+    const { usageReport } = await import("@/server/usage");
+    const teto = Number((await getSettings())["consumo.teto"]) > 0 ? Number((await getSettings())["consumo.teto"]) : 60;
+    const rep = await usageReport(30, null);
+    if (rep.totals.cost >= teto) return NextResponse.json({ error: `teto mensal de US$ ${teto} atingido: a geração de imagem está pausada. Aumente o teto em Consumo ou aguarde o próximo mês.`, codigo: "teto_atingido" }, { status: 402 });
+  }
   if (!isAuthenticated) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }

@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPersona } from "@/server/personas";
+import { getPersona, type Persona } from "@/server/personas";
 import { savePersona } from "../actions";
 import { PersonaFoto } from "@/components/persona-foto";
 import { PageHeader, btnPrimary, btnGhost, inputCls, labelCls } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+
+// D37: exemplos montados a partir dos tracos (o tom muda com as palavras-chave)
+function exemplos(p: Persona): string[] {
+  const t = p.tracos.toLowerCase();
+  const tom = /sério|serio|direto/.test(t) ? "Sem rodeios: " : /extrovert|anima|alegr/.test(t) ? "Bora! " : "Olá! ";
+  return [
+    `${tom}${p.nome} aqui. Veja como a sua conta pode ganhar tempo esta semana.`,
+    `${tom}Uma dica rápida para organizar o mês, em três passos.`,
+  ];
+}
 
 export default async function EditPersonaPage({
   params,
@@ -35,7 +45,8 @@ export default async function EditPersonaPage({
         <PersonaFoto id={p.id} foto={p.foto_url} nome={p.nome} />
       </div>
 
-      <form action={action} className="max-w-2xl space-y-5">
+      <div className="grid gap-8 lg:grid-cols-2">
+      <form action={action} className="space-y-5">
         <div>
           <label className={labelCls} htmlFor="nome">
             Nome
@@ -110,6 +121,33 @@ export default async function EditPersonaPage({
           </Link>
         </div>
       </form>
+      {/* D37: exemplos e instrucoes lado a lado com o formulario */}
+      <aside className="space-y-4">
+        {/* M24: tom em chips curtos, para ler a voz num relance */}
+        <div className="flex flex-wrap gap-1.5">
+          {p.tracos.split(/[,;]/).map((t) => t.trim()).filter(Boolean).slice(0, 8).map((t) => (
+            <span key={t} className="rounded-full border border-line px-2.5 py-1 text-xs text-dim">{t}</span>
+          ))}
+        </div>
+        <div className="rounded-lg border border-line bg-panel p-4">
+          <h3 className="text-sm font-medium text-ink">Exemplos gerados</h3>
+          <p className="mt-0.5 text-[11px] text-faint">Montados a partir dos traços. Mude os traços e veja o efeito.</p>
+          <ul className="mt-3 space-y-2">
+            {exemplos(p).map((t, i) => (
+              <li key={i} className="rounded-md bg-panel2 p-3 text-sm text-ink">{t}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-lg border border-line bg-panel p-4">
+          <h3 className="text-sm font-medium text-ink">Instruções ativas</h3>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-xs text-dim">
+            {(p.instrucoes || "sem instruções").split("\n").filter(Boolean).map((l, i) => (
+              <li key={i}>{l}</li>
+            ))}
+          </ol>
+        </div>
+      </aside>
+      </div>
     </>
   );
 }

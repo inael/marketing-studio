@@ -58,34 +58,50 @@ export type UsageReport = {
   }[];
 };
 
-export async function usageReport(days = 30): Promise<UsageReport> {
-  const [totals] = await sql<UsageReport["totals"][]>`
-    select
-      coalesce(sum(total_tokens),0)::int as tokens,
-      coalesce(sum(prompt_tokens),0)::int as prompt,
-      coalesce(sum(completion_tokens),0)::int as completion,
-      coalesce(sum(credits),0)::float as credits,
-      coalesce(sum(cost),0)::float as cost,
-      count(*) filter (where tipo='imagem')::int as imagens,
-      count(*)::int as eventos
-    from usage_events where created_at >= now() - make_interval(days => ${days})`;
-  const byTipo = await sql<UsageReport["byTipo"]>`
-    select tipo, count(*)::int as n, coalesce(sum(total_tokens),0)::int as tokens,
-      coalesce(sum(credits),0)::float as credits, coalesce(sum(cost),0)::float as cost
-    from usage_events where created_at >= now() - make_interval(days => ${days})
-    group by tipo order by tokens desc`;
-  const byPersona = await sql<UsageReport["byPersona"]>`
-    select
-      coalesce(persona,'(manual)') as persona,
-      count(*)::int as n,
-      coalesce(sum(total_tokens),0)::int as tokens,
-      coalesce(sum(credits),0)::float as credits,
-      coalesce(sum(cost),0)::float as cost,
-      count(*) filter (where tipo='sugestao')::int as sugestoes,
-      count(*) filter (where tipo='legenda')::int as legendas,
-      count(*) filter (where tipo='gestao')::int as gestao,
-      count(*) filter (where tipo='imagem')::int as imagens
-    from usage_events where created_at >= now() - make_interval(days => ${days})
-    group by 1 order by tokens desc`;
+export async function usageReport(days = 30, brandId?: string | null): Promise<UsageReport> {
+  const desde = Date.now() - days * 86_400_000;
+  const todas = await sql<{ tipo: string; persona: string | null; brand_id: string | null; total_tokens: number; prompt_tokens: number; completion_tokens: number; credits: number; created_at: Date }[]>`
+    select tipo, persona, brand_id, total_tokens, prompt_tokens, completion_tokens, credits, created_at from usage_events`;
+  const rows = todas.filter((r) => new Date(r.created_at).getTime() >= desde && (!brandId || r.brand_id === brandId));
+  const soma = (f: (r: (typeof rows)[number]) => number) => rows.reduce((acc, r) => acc + (Number(f(r)) || 0), 0);
+  const totals = {
+    tokens: Math.round(soma((r) => r.total_tokens)),
+    prompt: Math.round(soma((r) => r.prompt_tokens)),
+    completion: Math.round(soma((r) => r.completion_tokens)),
+    credits: soma((r) => r.credits),
+    cost: 0,
+    imagens: rows.filter((r) => r.tipo === "imagem").length,
+    eventos: rows.length,
+  };
+  totals.cost = Number((totals.credits * 0.002).toFixed(4));
+  const agrupa = <K extends string>(chave: (r: (typeof rows)[number]) => K) => {
+    const m = new Map<K, (typeof rows)>();
+    for (const r of rows) m.set(chave(r), [...(m.get(chave(r)) ?? []), r]);
+    return m;
+  };
+  const porTipo = agrupa((r) => r.tipo);
+  const byTipo = [...porTipo.entries()]
+    .map(([tipo, rs]) => ({
+      tipo,
+      n: rs.length,
+      tokens: rs.reduce((a, r) => a + r.total_tokens, 0),
+      credits: rs.reduce((a, r) => a + Number(r.credits), 0),
+      cost: rs.reduce((a, r) => a + Number(r.credits), 0) * 0.002,
+    }))
+    .sort((a, b) => b.tokens - a.tokens);
+  const porPersona = agrupa((r) => r.persona ?? "(manual)");
+  const byPersona = [...porPersona.entries()]
+    .map(([persona, rs]) => ({
+      persona,
+      n: rs.length,
+      tokens: rs.reduce((a, r) => a + r.total_tokens, 0),
+      credits: rs.reduce((a, r) => a + Number(r.credits), 0),
+      cost: rs.reduce((a, r) => a + Number(r.credits), 0) * 0.002,
+      sugestoes: rs.filter((r) => r.tipo === "sugestao").length,
+      legendas: rs.filter((r) => r.tipo === "legenda").length,
+      gestao: rs.filter((r) => r.tipo === "gestao").length,
+      imagens: rs.filter((r) => r.tipo === "imagem").length,
+    }))
+    .sort((a, b) => b.tokens - a.tokens);
   return { days, totals, byTipo, byPersona };
 }

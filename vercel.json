@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/autopilot",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/manutencao",
+      "schedule": "30 3 * * *"
     }
   ]
 }

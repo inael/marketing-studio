@@ -39,6 +39,11 @@ export async function publishPost(
   const post = await deps.getPost(postId);
   if (!post) return { ok: false, error: "post_not_found" };
   if (post.status !== "approved") return { ok: false, error: "not_approved" };
+  // B17: se o post ja saiu (link registrado), nao publica de novo: so corrige o estado
+  if (post.external_url) {
+    await deps.setPostStatus(postId, "published", {});
+    return { ok: true, url: post.external_url };
+  }
   const brand = await deps.getBrandById(post.brand_id);
   if (!brand) return { ok: false, error: "brand_not_found" };
   try {

@@ -1,6 +1,7 @@
 import { sql } from "./db";
 
 export type Brand = {
+  timezone?: string | null;
   id: string;
   slug: string;
   nome: string;

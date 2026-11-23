@@ -8,6 +8,9 @@ export type MediaAsset = {
   url: string;
   origem: string | null;
   created_at: string;
+  // B05/B50: chave no armazenamento e estado do envio (opcionais: dados antigos nao tem)
+  key?: string | null;
+  status?: string | null;
 };
 
 export async function listMedia(brandId?: string): Promise<MediaAsset[]> {

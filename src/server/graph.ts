@@ -32,6 +32,8 @@ async function publishCarousel(acc: IgAccount, imageUrls: string[], caption: str
     const c = await graphCall(acc.token, "POST", `${acc.igUserId}/media`, { image_url: u, is_carousel_item: "true" });
     children.push(c.id);
   }
+  // B13: o pai so pode ser criado depois que cada slide estiver pronto
+  for (const id of children) await waitReady(acc.token, id, 20);
   const parent = await graphCall(acc.token, "POST", `${acc.igUserId}/media`, {
     media_type: "CAROUSEL", children: children.join(","), caption,
   });

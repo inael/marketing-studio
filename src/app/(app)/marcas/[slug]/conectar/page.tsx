@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TesteConexao } from "@/components/teste-conexao";
 import { notFound } from "next/navigation";
 import { getBrand } from "@/server/brands";
 import { getOauthSession } from "@/server/oauth";
@@ -42,6 +43,47 @@ export default async function ConectarPage({
           </Link>
         }
       />
+
+      {/* D24: assistente em tres passos com diagnostico do que falta */}
+      {kind === "instagram" && (() => {
+        const passo1 = items.length > 0;
+        const passo2 = items.some((i) => Boolean(i.sublabel));
+        const passo3 = Boolean(brand.ig_user_id);
+        const linhas: { ok: boolean; titulo: string; detalhe: string }[] = [
+          {
+            ok: passo1,
+            titulo: "Conta profissional",
+            detalhe: passo1 ? `${items.length} conta(s) encontrada(s)` : "Entre com a conta do Facebook e autorize o acesso.",
+          },
+          {
+            ok: passo2,
+            titulo: "Página vinculada",
+            detalhe: passo2 ? "O Instagram está vinculado a uma página." : "Vincule o Instagram a uma página do Facebook e tente de novo.",
+          },
+          {
+            ok: passo3,
+            titulo: "Permissão de publicação",
+            detalhe: passo3 ? "Conta conectada e pronta para publicar." : "Libera depois que os passos 1 e 2 estiverem prontos.",
+          },
+        ];
+        return (
+          <ol className="mb-6 max-w-2xl space-y-2">
+            {linhas.map((l, i) => (
+              <li key={l.titulo} className="flex items-start gap-3 rounded-lg border border-line bg-panel px-4 py-3 text-sm">
+                <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] ${l.ok ? "bg-ok/15 text-ok" : "bg-panel2 text-faint"}`}>
+                  {l.ok ? "✓" : i + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-ink">Passo {i + 1} · {l.titulo}</div>
+                  <div className={`text-xs ${l.ok ? "text-dim" : "text-warn"}`}>{l.detalhe}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        );
+      })()}
+
+      <TesteConexao brandId={brand.id} pronto={Boolean(brand.ig_user_id)} />
 
       {items.length === 0 ? (
         <p className="text-sm text-dim">

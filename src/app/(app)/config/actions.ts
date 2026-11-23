@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { setSettings } from "@/server/settings";
+import { auditar } from "@/server/permissoes";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 export async function saveConfig(formData: FormData) {
+  await auditar("configuracao.salvar", "integrações");
   const { isAuthenticated } = await getLogtoContext(logtoConfig);
   if (!isAuthenticated) redirect("/logto/sign-in");
 
