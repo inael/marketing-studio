@@ -60,10 +60,11 @@ export default async function EditBrandPage({
         <p className="text-sm text-dim">
           {b.ig_user_id ? "Instagram conectado" : "Instagram pendente"} · {slots.length > 0 ? `${slots.length} horário(s) fixo(s)` : "sem horários fixos"}
         </p>
-        <nav aria-label="Ajustes da marca" className="grid grid-cols-3 gap-2">
+        <nav aria-label="Ajustes da marca" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <a href="#horarios" className="min-h-11 rounded-md border border-line px-3 py-2 text-center text-xs text-dim hover:text-ink">Horários · {slots.length}</a>
           <a href="#conta" className="min-h-11 rounded-md border border-line px-3 py-2 text-center text-xs text-dim hover:text-ink">Conta</a>
           <a href="#identidade" className="min-h-11 rounded-md border border-line px-3 py-2 text-center text-xs text-dim hover:text-ink">Identidade</a>
+          <Link href={`/marcas/${b.slug}/referencias`} className="min-h-11 rounded-md border border-line px-3 py-2 text-center text-xs text-dim hover:text-ink">Referências visuais</Link>
         </nav>
       </div>
 
