@@ -31,9 +31,9 @@ const DT = new Intl.DateTimeFormat("pt-BR", {
 });
 
 export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return DT.format(d);
 }
 

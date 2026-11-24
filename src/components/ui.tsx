@@ -12,12 +12,12 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-ink">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-dim">{subtitle}</p>}
+    <header className="mb-6 flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink md:text-3xl">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm text-dim">{subtitle}</p>}
       </div>
-      {action}
+      {action && <div className="flex flex-wrap items-center gap-2 md:shrink-0">{action}</div>}
     </header>
   );
 }

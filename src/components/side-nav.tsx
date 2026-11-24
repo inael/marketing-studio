@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { initials } from "@/lib/ui";
 import { Avatar } from "@/components/avatar";
-import { CommandPalette, type PaletteItem } from "@/components/command-palette";
+type PaletteItem = { href: string; label: string; group: "Telas"; hint?: string };
 import { Atalhos } from "@/components/atalhos";
 import { MobileNav } from "@/components/mobile-nav";
 import { OfflineBanner } from "@/components/offline-banner";
+import { Avisos, AvisoDaUrl } from "@/components/avisos";
 import { RetornoSessao } from "@/components/retorno-sessao";
 import { BrandSwitcher, type MarcaOpcao } from "@/components/brand-switcher";
 import type { ContagensMenu } from "@/server/menu-contagens";
@@ -17,30 +18,8 @@ import type { ContagensMenu } from "@/server/menu-contagens";
 type Item = { href: string; label: string; hint?: string };
 type Section = { key: string; label: string; icon: ReactNode; items: Item[] };
 
-type ItemMenu = { href: string; label: string; contagem?: keyof ContagensMenu; alerta?: boolean };
+type ItemMenu = { href: string; label: string; desc: string; icone: string; contagem?: keyof ContagensMenu; alerta?: boolean };
 type GrupoMenu = { titulo: string; itens: ItemMenu[] };
-
-// Menu lateral em dois grupos: o dia a dia no alto, a gestão embaixo. Contadores ao lado do item.
-const GRUPOS: GrupoMenu[] = [
-  { titulo: "Dia a dia", itens: [
-    { href: "/dashboard", label: "Início" },
-    { href: "/aprovacao", label: "Aprovação", contagem: "aprovacao", alerta: true },
-    { href: "/historico", label: "Histórico", contagem: "falhas", alerta: true },
-    { href: "/criar", label: "Criar" },
-    { href: "/posts", label: "Posts" },
-    { href: "/calendario", label: "Calendário" },
-    { href: "/biblioteca", label: "Biblioteca" },
-    { href: "/notificacoes", label: "Notificações", contagem: "notificacoes" },
-  ] },
-  { titulo: "Gestão", itens: [
-    { href: "/marcas", label: "Marcas" },
-    { href: "/contas", label: "Contas" },
-    { href: "/time", label: "Time" },
-    { href: "/relatorios", label: "Relatórios" },
-    { href: "/consumo", label: "Consumo de IA" },
-    { href: "/config", label: "Configurações" },
-  ] },
-];
 
 const I = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-[18px] w-[18px]">
@@ -48,12 +27,89 @@ const I = (d: ReactNode) => (
   </svg>
 );
 
+// Ícones do menu (traço, 24px). Cada item tem ícone e uma descrição curta.
+const ICONES: Record<string, ReactNode> = {
+  home: I(<path d="M3.5 11 12 4l8.5 7v8.5a1 1 0 0 1-1 1h-4.5v-6h-6v6H4.5a1 1 0 0 1-1-1z" strokeWidth="1.6" strokeLinejoin="round" />),
+  aprovar: I(<><circle cx="12" cy="12" r="8.5" strokeWidth="1.6" /><path d="m8.5 12.2 2.4 2.4 4.6-5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>),
+  historico: I(<><circle cx="12" cy="12" r="8.5" strokeWidth="1.6" /><path d="M12 7.5V12l3 2" strokeWidth="1.6" strokeLinecap="round" /></>),
+  criar: I(<><circle cx="12" cy="12" r="8.5" strokeWidth="1.6" /><path d="M12 8v8M8 12h8" strokeWidth="1.6" strokeLinecap="round" /></>),
+  posts: I(<><rect x="4" y="4" width="16" height="16" rx="2.5" strokeWidth="1.6" /><path d="M4 9.5h16" strokeWidth="1.6" /></>),
+  calendario: I(<><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" strokeWidth="1.6" /><path d="M3.5 10h17M8 3v4M16 3v4" strokeWidth="1.6" strokeLinecap="round" /></>),
+  biblioteca: I(<><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" strokeWidth="1.6" /><circle cx="9" cy="10" r="1.8" strokeWidth="1.6" /><path d="m20.5 16-5-5-7.5 7.5" strokeWidth="1.6" strokeLinejoin="round" /></>),
+  notificacoes: I(<><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z" strokeWidth="1.6" strokeLinejoin="round" /><path d="M10 20.5h4" strokeWidth="1.6" strokeLinecap="round" /></>),
+  marcas: I(<><circle cx="12" cy="12" r="8.5" strokeWidth="1.6" /><circle cx="12" cy="12" r="3" strokeWidth="1.6" /></>),
+  contas: I(<><path d="M10 13.5a4.5 4.5 0 0 0 6.4 0l2.6-2.6a4.5 4.5 0 0 0-6.4-6.4l-1 1" strokeWidth="1.6" strokeLinecap="round" /><path d="M14 10.5a4.5 4.5 0 0 0-6.4 0l-2.6 2.6a4.5 4.5 0 0 0 6.4 6.4l1-1" strokeWidth="1.6" strokeLinecap="round" /></>),
+  time: I(<><circle cx="9" cy="8" r="3.2" strokeWidth="1.6" /><path d="M3 20a6 6 0 0 1 12 0M16 4.8a3.2 3.2 0 0 1 0 6.4M18 14.4A6 6 0 0 1 21 20" strokeWidth="1.6" strokeLinecap="round" /></>),
+  relatorios: I(<path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6" strokeWidth="1.6" strokeLinecap="round" />),
+  consumo: I(<><rect x="6.5" y="6.5" width="11" height="11" rx="2" strokeWidth="1.6" /><path d="M9.5 2.5v3M14.5 2.5v3M9.5 18.5v3M14.5 18.5v3M2.5 9.5h3M2.5 14.5h3M18.5 9.5h3M18.5 14.5h3" strokeWidth="1.6" strokeLinecap="round" /></>),
+  config: I(<><circle cx="12" cy="12" r="3" strokeWidth="1.6" /><path d="M12 2.8v2.4M12 18.8v2.4M4.9 7l2.1 1.2M17 15.8l2.1 1.2M4.9 17l2.1-1.2M17 8.2l2.1-1.2" strokeWidth="1.6" strokeLinecap="round" /></>),
+};
+
+// ícone de cada sub-tela (abas no topo de uma seção)
+const TRACO = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "aria-hidden": true, className: "h-4 w-4", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+const ICONE_SUBTELA: Record<string, ReactNode> = {
+  "/sugestoes": <svg {...TRACO}><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1 1 1.7V16h5v-.4c0-.7.4-1.3 1-1.7A6 6 0 0 0 12 3z" /></svg>,
+  "/criar": <svg {...TRACO}><circle cx="12" cy="12" r="8.5" /><path d="M12 8v8M8 12h8" /></svg>,
+  "/serie": <svg {...TRACO}><path d="M3 7h13M3 12h13M3 17h9M19 14v6M16 17h6" /></svg>,
+  "/posts": <svg {...TRACO}><rect x="4" y="4" width="16" height="16" rx="2.5" /><path d="M4 9.5h16" /></svg>,
+  "/aprovacao": <svg {...TRACO}><circle cx="12" cy="12" r="8.5" /><path d="m8.5 12.2 2.4 2.4 4.6-5" /></svg>,
+  "/notificacoes": <svg {...TRACO}><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z" /><path d="M10 20.5h4" /></svg>,
+  "/busca": <svg {...TRACO}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></svg>,
+  "/historico": <svg {...TRACO}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>,
+  "/lote": <svg {...TRACO}><path d="m12 4 8.5 4.5L12 13 3.5 8.5 12 4z" /><path d="m3.5 12.5 8.5 4.5 8.5-4.5" /></svg>,
+  "/calendario": <svg {...TRACO}><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>,
+  "/storyboard": <svg {...TRACO}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><path d="M7.5 4.5v15M16.5 4.5v15M3.5 9.5h4M3.5 14.5h4M16.5 9.5h4M16.5 14.5h4" /></svg>,
+  "/biblioteca": <svg {...TRACO}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="m20.5 16-5-5-7.5 7.5" /></svg>,
+};
+
+// Menu lateral em dois grupos: o dia a dia no alto, a gestão embaixo. Contadores e descrição em cada item.
+const GRUPOS: GrupoMenu[] = [
+  { titulo: "Dia a dia", itens: [
+    { href: "/dashboard", label: "Início", icone: "home", desc: "o que pede ação hoje" },
+    { href: "/aprovacao", label: "Aprovação", icone: "aprovar", desc: "posts aguardando você", contagem: "aprovacao", alerta: true },
+    { href: "/historico", label: "Histórico", icone: "historico", desc: "o que saiu e o que falhou", contagem: "falhas", alerta: true },
+    { href: "/criar", label: "Criar", icone: "criar", desc: "post novo, do zero" },
+    { href: "/posts", label: "Posts", icone: "posts", desc: "gerar, aprovar e publicar" },
+    { href: "/calendario", label: "Calendário", icone: "calendario", desc: "o que tem hora marcada" },
+    { href: "/biblioteca", label: "Biblioteca", icone: "biblioteca", desc: "imagens e vídeos enviados" },
+    { href: "/notificacoes", label: "Notificações", icone: "notificacoes", desc: "avisos do sistema", contagem: "notificacoes" },
+  ] },
+  { titulo: "Gestão", itens: [
+    { href: "/marcas", label: "Marcas", icone: "marcas", desc: "identidade e horários" },
+    { href: "/contas", label: "Contas", icone: "contas", desc: "conexão com as redes" },
+    { href: "/time", label: "Time", icone: "time", desc: "pessoas e funções" },
+    { href: "/relatorios", label: "Relatórios", icone: "relatorios", desc: "concorrentes e resultados" },
+    { href: "/consumo", label: "Consumo de IA", icone: "consumo", desc: "uso e limite do mês" },
+    { href: "/config", label: "Configurações", icone: "config", desc: "integrações e aparência" },
+  ] },
+];
+
+// Logo do Marketing Studio: marca própria em SVG (quadrado de tinta com três barras; a primeira na cor da marca).
+function MarcaLogo({ compacto = false }: { compacto?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <svg viewBox="0 0 32 32" aria-hidden className="h-8 w-8 shrink-0">
+        <rect x="1" y="1" width="30" height="30" rx="8" className="fill-ink" />
+        <rect x="8" y="9" width="4" height="14" rx="2" style={{ fill: "var(--brand, #E4572E)" }} />
+        <rect x="14" y="13" width="4" height="10" rx="2" className="fill-canvas" />
+        <rect x="20" y="9" width="4" height="14" rx="2" className="fill-canvas" />
+      </svg>
+      {!compacto && (
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold leading-tight text-ink">Marketing Studio</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-faint">console</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const SECTIONS: Section[] = [
   { key: "inicio", label: "Início", icon: I(<><rect x="4" y="4" width="7" height="9" rx="1.5" strokeWidth="1.6" /><rect x="4" y="16" width="7" height="4" rx="1.5" strokeWidth="1.6" /><rect x="13" y="4" width="7" height="4" rx="1.5" strokeWidth="1.6" /><rect x="13" y="11" width="7" height="9" rx="1.5" strokeWidth="1.6" /></>), items: [{ href: "/dashboard", label: "Dashboard" }] },
   // Ordem do submenu = ordem do trabalho: de onde a ideia nasce até ela ir ao ar.
   // As três primeiras são o caminho de uma publicação; as três últimas são apoio.
   { key: "conteudo", label: "Conteúdo", icon: I(<><rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="1.6" /><path d="M4 9h16M9 9v11" strokeWidth="1.5" /></>), items: [
-    { href: "/sugestoes", label: "Sugestões", hint: "ideias da IA — vire rascunho" },
+    { href: "/sugestoes", label: "Sugestões", hint: "ideias da IA, vire rascunho" },
     { href: "/criar", label: "Criar", hint: "post novo, do zero" },
     { href: "/serie", label: "Em série", hint: "vários posts com intervalo" },
     { href: "/posts", label: "Posts", hint: "gerar arte, aprovar e publicar" },
@@ -119,6 +175,36 @@ export function AppShell({
   const [override, setOverride] = useState<{ path: string; key: string | null } | null>(null);
   // M48: folha de saida com o que sai deste aparelho
   const [saindo, setSaindo] = useState(false);
+  // recolhe o menu para uma faixa de ícones; a escolha fica salva e o atalho é Ctrl/⌘ + B
+  const [recolhido, setRecolhido] = useState(false);
+  function alternarMenu() {
+    setRecolhido((cur) => {
+      const next = !cur;
+      try {
+        window.localStorage.setItem("ms.menu.recolhido", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  }
+  useEffect(() => {
+    try {
+      setRecolhido(window.localStorage.getItem("ms.menu.recolhido") === "1");
+    } catch {}
+    function atalho(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        setRecolhido((cur) => {
+          const next = !cur;
+          try {
+            window.localStorage.setItem("ms.menu.recolhido", next ? "1" : "0");
+          } catch {}
+          return next;
+        });
+      }
+    }
+    window.addEventListener("keydown", atalho);
+    return () => window.removeEventListener("keydown", atalho);
+  }, []);
   const openKey = override?.path === pathname ? override.key : auto;
 
   const panel = openKey ? SECTIONS.find((s) => s.key === openKey) : undefined;
@@ -130,18 +216,32 @@ export function AppShell({
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-line bg-panel md:flex">
-        <div className="flex items-center gap-2.5 px-4 py-4">
-          <Link href="/dashboard" className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-ink text-xs font-bold text-canvas" title="Marketing Studio">
-            MS
+      <aside className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line bg-panel transition-[width] duration-300 md:flex ${recolhido ? "w-16" : "w-72"}`}>
+        <div className={`flex items-center ${recolhido ? "flex-col gap-3 px-2 pb-3 pt-4" : "px-4 pb-3 pt-4"}`}>
+          <Link href="/dashboard" aria-label="Marketing Studio · início" className="min-w-0 flex-1">
+            <MarcaLogo compacto={recolhido} />
           </Link>
-          <span className="text-sm font-semibold text-ink">Marketing Studio</span>
+          <button
+            type="button"
+            onClick={alternarMenu}
+            aria-label={recolhido ? "Mostrar menu" : "Ocultar menu"}
+            title={`${recolhido ? "Mostrar" : "Ocultar"} menu (Ctrl/⌘ + B)`}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line text-faint transition-colors hover:bg-panel2 hover:text-ink"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4">
+              <path d={recolhido ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
 
         <nav aria-label="Menu principal" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 pb-3">
           {GRUPOS.map((g) => (
             <div key={g.titulo}>
-              <div className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">{g.titulo}</div>
+              {recolhido ? (
+                <div className="mx-2 mb-2 h-px bg-line" aria-hidden />
+              ) : (
+                <div className="flex items-center gap-2 px-2.5 pb-2 text-[12px] font-bold uppercase tracking-[0.2em] text-ink"><span aria-hidden className="h-3.5 w-0.5 rounded-full bg-warn" />{g.titulo}</div>
+              )}
               <ul className="space-y-0.5">
                 {g.itens.map((it) => {
                   const on = pathname === it.href || pathname.startsWith(it.href + "/");
@@ -150,10 +250,15 @@ export function AppShell({
                     <li key={it.href}>
                       <Link
                         href={it.href}
+                        title={recolhido ? it.label : undefined}
                         aria-current={on ? "page" : undefined}
-                        className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${on ? "bg-panel2 text-ink" : "text-dim hover:bg-panel2/60 hover:text-ink"}`}
+                        className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors ${recolhido ? "justify-center px-0" : ""} ${on ? "bg-panel2 text-ink" : "text-dim hover:bg-panel2/60 hover:text-ink"}`}
                       >
-                        {it.label}
+                        <span className={on ? "text-ink" : "text-faint"}>{ICONES[it.icone]}</span>
+                        <span className={`min-w-0 flex-1 ${recolhido ? "hidden" : ""}`}>
+                          <span className="block truncate text-[12px] font-semibold uppercase leading-tight tracking-[0.08em]">{it.label}</span>
+                          <span className="block truncate text-[11px] leading-tight text-faint">{it.desc}</span>
+                        </span>
                         {n > 0 && (
                           <span
                             aria-label={`${n} ${it.contagem === "aprovacao" ? "aguardando aprovação" : it.contagem === "falhas" ? "com falha" : "não lidas"}`}
@@ -173,7 +278,9 @@ export function AppShell({
 
         {/* marca, conta, tema e saída no rodapé do menu */}
         <div className="flex flex-col gap-2 border-t border-line px-3 py-3">
-          <BrandSwitcher marcas={marcas} atual={marcaSel?.slug ?? null} />
+          <div className={recolhido ? "hidden" : ""}>
+            <BrandSwitcher marcas={marcas} atual={marcaSel?.slug ?? null} />
+          </div>
           <div className="flex items-center gap-2">
             {picture ? (
               <Avatar src={picture} nome={initials(who)} cor="#3a3a40" title={who} />
@@ -182,7 +289,7 @@ export function AppShell({
                 {initials(who)}
               </span>
             )}
-            <span className="min-w-0 flex-1 truncate text-xs text-dim">{who}</span>
+            <span className={`min-w-0 flex-1 truncate text-xs text-dim ${recolhido ? "hidden" : ""}`}>{who}</span>
             <ThemeToggle compact />
             <button
               type="button"
@@ -220,35 +327,21 @@ export function AppShell({
         </div>
       )}
       <OfflineBanner />
-      <main className="pb-20 transition-[padding] duration-200 md:pb-0 md:pl-56">
-        <div className="mx-auto max-w-6xl px-4 py-5 md:px-8 md:py-8">
+      <Avisos />
+      <Suspense fallback={null}>
+        <AvisoDaUrl />
+      </Suspense>
+      <main className={`min-w-0 overflow-x-hidden pb-20 transition-[padding] duration-300 md:pb-0 ${recolhido ? "md:pl-16" : "md:pl-72"}`}>
+        <div className="mx-auto w-full max-w-[1600px] min-w-0 px-6 py-8 md:px-12 md:py-12">
           {/* D05: faixa de destaque na cor da marca escolhida */}
           {marcaSel && <div className="mb-4 h-1 rounded-full" style={{ background: marcaSel.cor }} aria-hidden />}
           <RetornoSessao />
-          {/* D05 + D04: seletor de marca global e atalho para a paleta de comandos */}
-          <div className="mb-6 flex items-center gap-3">
-            {/* D04: a propria barra aceita texto (busca) ou "/" (comandos) */}
-            <div className="relative w-full md:max-w-md">
-              <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint">
-                <circle cx="9" cy="9" r="6" />
-                <path d="m14 14 4 4" strokeLinecap="round" />
-              </svg>
-              <input
-                aria-label="Buscar ou executar comandos"
-                placeholder="Buscar ou digitar / para comandos"
-              onFocus={(e) => window.dispatchEvent(new CustomEvent("ms:palette", { detail: { q: e.currentTarget.value } }))}
-              onChange={(e) => window.dispatchEvent(new CustomEvent("ms:palette", { detail: { q: e.currentTarget.value } }))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") window.dispatchEvent(new CustomEvent("ms:palette-enter"));
-              }}
-              className="w-full rounded-md border border-line bg-panel py-2 pl-9 pr-10 text-sm text-ink placeholder:text-faint outline-none transition-colors focus:border-line2"
-            />
-              <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-line px-1.5 text-[10px] text-faint">/</kbd>
-            </div>
+          <div className="mb-6 flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-dim">Marketing Studio</span>
           </div>
           {/* D03: sub-telas da secao como abas no topo; o trilho fica so com as secoes */}
           {current && current.items.length > 1 && (
-            <nav aria-label="Abas da seção" className="mb-5 flex flex-wrap gap-1 border-b border-line">
+            <nav aria-label="Abas da seção" className="mb-6 flex flex-wrap gap-1 rounded-xl border border-line bg-panel p-1.5">
               {current.items.map((it) => {
                 const on = pathname === it.href || pathname.startsWith(it.href + "/");
                 return (
@@ -256,8 +349,9 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     aria-current={on ? "page" : undefined}
-                    className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${on ? "border-ink text-ink" : "border-transparent text-faint hover:text-dim"}`}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${on ? "bg-panel2 text-ink shadow-sm" : "text-faint hover:bg-panel2/60 hover:text-dim"}`}
                   >
+                    <span className={on ? "text-warn" : "text-faint"}>{ICONE_SUBTELA[it.href]}</span>
                     {it.label}
                   </Link>
                 );
@@ -267,7 +361,6 @@ export function AppShell({
           {children}
         </div>
       </main>
-      <CommandPalette telas={telas} />
       <Atalhos />
       <MobileNav telas={telas} />
     </div>

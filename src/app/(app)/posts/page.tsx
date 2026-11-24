@@ -32,6 +32,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
         subtitle={`${posts.length} ${posts.length === 1 ? "post" : "posts"}`}
         action={
           <Link href="/criar" className={btnPrimary}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             Criar post
           </Link>
         }

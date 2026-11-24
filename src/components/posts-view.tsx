@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { avisar } from "@/components/avisos";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sessaoExpirou } from "@/lib/sessao";
@@ -65,12 +66,12 @@ function Dropdown({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors ${
-          count ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
+        className={`inline-flex min-h-11 items-center gap-2 rounded-lg border px-3.5 text-sm transition-colors ${
+          count ? "border-line2 bg-panel2 text-ink" : "border-line bg-panel text-dim hover:text-ink"
         }`}
       >
         {label} {count > 0 && <span className="text-info">({count})</span>}
-        <span className="text-faint">▾</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5 text-faint" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
         <>
@@ -150,7 +151,7 @@ function Trilha({
     <section className="mb-5 rounded-lg border border-line bg-panel/50 p-4">
       <h2 className="mb-1 text-sm font-semibold text-ink">Como um post vai ao ar</h2>
       <p className="mb-3 max-w-2xl text-xs leading-relaxed text-dim">
-        A IA escreve a legenda e o prompt da arte, mas a imagem só é gerada quando você manda — e o
+        A IA escreve a legenda e o prompt da arte, mas a imagem só é gerada quando você manda, e o
         post só vai pro Instagram depois de aprovado. Clique numa etapa pra ver só os posts dela.
       </p>
       <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -225,6 +226,8 @@ export function PostsView({
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
   // M34: folha de filtros no celular
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  // busca por texto: legenda, hashtag, nome da marca ou nome do analista
+  const [busca, setBusca] = useState("");
   // D38: clicar numa pessoa no organograma abre a lista dos posts dela
   const [analistaSel, setAnalistaSel] = useState<Set<string>>(new Set(analistaInicial ? [analistaInicial] : []));
   const [openId, setOpenId] = useState<string | null>(null);
@@ -264,12 +267,20 @@ export function PostsView({
     setter(n);
   };
 
+  const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const buscaNormalizada = norm(busca.trim());
+  const textoDoPost = (p: Post) => {
+    const marca = byId.get(p.brand_id)?.nome ?? "";
+    return norm([p.legenda ?? "", (p.hashtags ?? []).join(" "), marca, p.analista ?? ""].join(" "));
+  };
+
   const filtered = posts.filter(
     (p) =>
       (etapa === null || naEtapa(p, etapa)) &&
       (brandSel.size === 0 || brandSel.has(p.brand_id)) &&
       (statusSel.size === 0 || statusSel.has(p.status)) &&
-      (analistaSel.size === 0 || (p.analista ? analistaSel.has(p.analista) : false))
+      (analistaSel.size === 0 || (p.analista ? analistaSel.has(p.analista) : false)) &&
+      (buscaNormalizada === "" || textoDoPost(p).includes(buscaNormalizada))
   );
 
   const isReel = (p: Post) => p.tipo === "reel";
@@ -314,6 +325,8 @@ export function PostsView({
         );
       }
       setMsg(r.ok ? (okText ? { kind: "ok", text: okText } : null) : { kind: "err", text: r.error });
+      if (r.ok && okText) avisar("ok", okText);
+      if (!r.ok) avisar("erro", r.error);
       router.refresh();
     });
 
@@ -384,7 +397,7 @@ export function PostsView({
         kind: semImagem > 0 ? "err" : "ok",
         text:
           semImagem > 0
-            ? `${ok} aprovado(s). ${semImagem} ficaram de fora por não ter imagem — gere a arte primeiro.`
+            ? `${ok} aprovado(s). ${semImagem} ficaram de fora por não ter imagem, gere a arte primeiro.`
             : `${ok} post(s) aprovado(s). Foram pra etapa 3, prontos pra publicar.`,
       });
       router.refresh();
@@ -807,6 +820,32 @@ export function PostsView({
           <span className="text-sm font-semibold text-ink">Filtros</span>
           <button type="button" onClick={() => setFiltrosAbertos(false)} className="min-h-11 px-3 text-sm text-info">Mostrar resultados</button>
         </div>
+        <label className="relative min-w-[240px] flex-1 max-w-md">
+          <span className="sr-only">Buscar publicação</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m20 20-4.2-4.2" />
+          </svg>
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por legenda, hashtag, marca ou analista"
+            className="min-h-11 w-full rounded-lg border border-line bg-panel pl-9 pr-9 text-sm text-ink placeholder:text-faint"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca("")}
+              aria-label="Limpar busca"
+              className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-faint hover:bg-panel2 hover:text-ink"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="2" strokeLinecap="round">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          )}
+        </label>
         <Dropdown
           label="Marcas"
           options={brands.map((b) => ({ value: b.id, label: b.nome, dot: b.cor_principal }))}
@@ -842,20 +881,24 @@ export function PostsView({
           <button
             type="button"
             onClick={() => setShowRank((s) => !s)}
-            className="rounded-md border border-line px-3 py-1.5 text-xs text-dim transition-colors hover:text-ink"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-panel px-3.5 text-sm text-dim transition-colors hover:text-ink"
           >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8 20h8" /></svg>
             Ranking do time
           </button>
-          <div className="inline-flex rounded-md border border-line p-0.5">
+          <div className="inline-flex gap-1 rounded-lg border border-line bg-panel p-1">
             {(["list", "grade", "semana"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => setView(v)}
-                className={`rounded px-2.5 py-1 text-xs transition-colors ${
-                  view === v ? "bg-panel2 text-ink" : "text-dim hover:text-ink"
+                className={`inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm transition-colors ${
+                  view === v ? "bg-panel2 text-ink shadow-sm" : "text-dim hover:text-ink"
                 }`}
               >
+                {v === "list" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1" /><circle cx="4.5" cy="12" r="1" /><circle cx="4.5" cy="18" r="1" /></svg>}
+                {v === "grade" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>}
+                {v === "semana" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>}
                 {v === "list" ? "Lista" : v === "grade" ? "Grade" : "Semana"}
               </button>
             ))}
@@ -964,18 +1007,15 @@ export function PostsView({
             ))}
           </div>
           {grupos.map((g) => (
-            <section key={g.key}>
-              <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-faint">{g.rotulo}</h3>
-              <div className="grid items-start gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <div className="mb-2 text-[11px] uppercase tracking-wide text-faint">Feed e carrossel</div>
-                  <div className="grid gap-4 sm:grid-cols-2">{g.itens.filter((p) => !isReel(p)).map(gradeCard)}</div>
-                </div>
-                <div>
-                  <div className="mb-2 text-[11px] uppercase tracking-wide text-faint">Reels</div>
-                  <div className="grid gap-4">{g.itens.filter((p) => isReel(p)).map(gradeCard)}</div>
-                </div>
-              </div>
+            <section key={g.key} className="space-y-3">
+              <header className="flex items-center justify-between gap-3 border-b border-line pb-2">
+                <h3 className="text-sm font-semibold text-ink">{g.rotulo}</h3>
+                <span className="text-xs text-faint">
+                  {g.itens.length} {g.itens.length === 1 ? "post" : "posts"}
+                  {g.itens.some(isReel) ? ` · ${g.itens.filter(isReel).length} reel(s)` : ""}
+                </span>
+              </header>
+              <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">{g.itens.map(gradeCard)}</div>
             </section>
           ))}
         </div>

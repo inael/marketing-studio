@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 
 function SecretHint({ set }: { set: boolean }) {
   return set ? (
-    <span className="text-xs text-ok">configurado — deixe em branco pra manter</span>
+    <span className="text-xs text-ok">configurado, deixe em branco pra manter</span>
   ) : (
     <span className="text-xs text-faint">não configurado</span>
   );
@@ -97,7 +97,7 @@ export default async function ConfigPage({
       </nav>
 
       {/* Panorama: o que já está no ar, num relance */}
-      <section className="mb-8 max-w-2xl rounded-lg border border-line bg-panel/50 p-5">
+      <section className="mb-8 w-full rounded-lg border border-line bg-panel/50 p-5">
         <h2 className="text-sm font-semibold text-ink">Status das integrações</h2>
         <p className="mt-1 text-xs text-dim">
           Resumo do que já está ativo. Cada item abaixo repete o selo na sua seção.
@@ -146,7 +146,7 @@ export default async function ConfigPage({
         </p>
       )}
 
-      <form action={saveConfig} className="max-w-2xl space-y-8">
+      <form action={saveConfig} className="w-full space-y-8">
         {/* IA de texto */}
         <section id="ia-texto" className="space-y-5 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
@@ -279,7 +279,7 @@ export default async function ConfigPage({
             hint={
               <>
                 Login de uma conta X pro scraper self-host puxar trends e tweets do nicho.{" "}
-                <span className="text-warn">Use uma conta dedicada/queimada</span> — scraping pode
+                <span className="text-warn">Use uma conta dedicada/queimada</span>, scraping pode
                 bloquear a conta. A senha é write-only e só é usada no login (depois vale por cookies).
               </>
             }
@@ -349,8 +349,8 @@ export default async function ConfigPage({
         </button>
       </form>
 
-      {/* Contas das marcas — read-only aqui; conecta na página da marca */}
-      <section id="contas" className="mt-8 max-w-2xl space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+      {/* Contas das marcas, read-only aqui; conecta na página da marca */}
+      <section id="contas" className="mt-8 w-full space-y-4 rounded-lg border border-line bg-panel/50 p-6">
         <SectionHead
           title="Contas conectadas das marcas"
           hint="Instagram e LinkedIn são conectados por marca. Aqui só mostramos o estado; para conectar, abra a marca."

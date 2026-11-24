@@ -40,7 +40,7 @@ export default async function EditPersonaPage({
         }
       />
 
-      <div className="mb-6 max-w-2xl">
+      <div className="mb-6 w-full">
         <label className={labelCls}>Foto do {p.papel === "gestor" ? "gestor" : "analista"}</label>
         <PersonaFoto id={p.id} foto={p.foto_url} nome={p.nome} />
       </div>

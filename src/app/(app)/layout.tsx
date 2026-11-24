@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getLogtoContext } from "@logto/next/server-actions";
 import { logtoConfig } from "@/lib/logto";
 import { AppShell } from "@/components/side-nav";
-import { listAllBrands } from "@/server/brands";
+import { listAllBrands, avatarOf } from "@/server/brands";
 import { getMarcaAtivaSlug } from "@/server/marca-ativa";
 import { contagensMenu } from "@/server/menu-contagens";
 
@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [brands, slug, contagens] = await Promise.all([listAllBrands(), getMarcaAtivaSlug(), contagensMenu()]);
   const marcas = brands
     .filter((b) => b.ativo)
-    .map((b) => ({ slug: b.slug, nome: b.nome, cor: b.cor_principal }));
+    .map((b) => ({ slug: b.slug, nome: b.nome, cor: b.cor_principal, avatar: avatarOf(b) }));
   const marcaAtiva = marcas.some((m) => m.slug === slug) ? slug : null;
 
   return (

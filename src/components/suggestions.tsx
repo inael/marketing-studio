@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Avatar } from "@/components/avatar";
 import Link from "next/link";
 import {
   acceptSuggestion,
@@ -33,6 +34,30 @@ type Suggestion = {
 type Tab = "noticia" | "concorrente" | "twitter" | "youtube";
 type Meta = { rss: number; competitors: number; warnings?: string[] };
 type Verdict = { gestor: string; escolhas: { titulo: string; por_que: string }[]; ajustes: string; feedback_time: string };
+
+// ícone de cada fonte de sugestão
+const ICONE_FONTE: Record<string, React.ReactNode> = {
+  noticia: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><path d="M7.5 9h9M7.5 12.5h9M7.5 16h5" />
+    </svg>
+  ),
+  concorrente: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3.2" /><path d="M3 20a6 6 0 0 1 12 0M16 4.8a3.2 3.2 0 0 1 0 6.4M18 14.4A6 6 0 0 1 21 20" />
+    </svg>
+  ),
+  twitter: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4l16 16M20 4 4 20" />
+    </svg>
+  ),
+  youtube: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="6" width="18" height="12" rx="3" /><path d="M10.5 9.5v5l4-2.5-4-2.5z" />
+    </svg>
+  ),
+};
 
 const TABS: { v: Tab; label: string; ready: boolean }[] = [
   { v: "noticia", label: "Notícias", ready: true },
@@ -366,26 +391,32 @@ export function Suggestions({
     <div className="space-y-6">
       {/* marca */}
       <div>
-        <div className="mb-1.5 text-xs font-medium text-dim">Marca</div>
-        <div className="flex flex-wrap gap-2">
-          {brands.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => setBrandId(b.id)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                brandId === b.id ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
-              }`}
-            >
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.cor_principal }} />
-              {b.nome}
-            </button>
-          ))}
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-faint">Marca</div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+          {brands.map((b) => {
+            const on = brandId === b.id;
+            return (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => setBrandId(b.id)}
+                aria-pressed={on}
+                className={`relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                  on ? "border-warn bg-panel2 text-ink" : "border-line bg-panel text-dim hover:border-line2 hover:text-ink"
+                }`}
+              >
+                <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: b.cor_principal }} />
+                <Avatar src={b.avatar} nome={b.nome} cor={b.cor_principal} size={28} />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{b.nome}</span>
+                {on && <span className="h-2 w-2 shrink-0 rounded-full bg-warn" aria-hidden />}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* abas por fonte */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-line pb-3">
+      <div className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-line bg-panel p-1.5">
         {TABS.map((t) => {
           const n =
             t.v === "noticia" || t.v === "concorrente" || t.v === "twitter"
@@ -396,13 +427,18 @@ export function Suggestions({
               key={t.v}
               type="button"
               onClick={() => setTab(t.v)}
-              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-                tab === t.v ? "bg-panel2 text-ink" : "text-dim hover:text-ink"
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+                tab === t.v ? "bg-panel2 text-ink shadow-sm" : "text-faint hover:bg-panel2/60 hover:text-dim"
               }`}
             >
+              <span className={tab === t.v ? "text-warn" : "text-faint"} aria-hidden>
+                {ICONE_FONTE[t.v]}
+              </span>
               {t.label}
-              {t.ready && n > 0 && <span className="ml-1 text-faint">({n})</span>}
-              {!t.ready && <span className="ml-1 text-[10px] text-faint">em breve</span>}
+              {t.ready && n > 0 && (
+                <span className="rounded-full bg-panel3 px-1.5 text-[11px] leading-[18px] text-dim">{n}</span>
+              )}
+              {!t.ready && <span className="rounded-full border border-line px-1.5 text-[10px] text-faint">em breve</span>}
             </button>
           );
         })}
@@ -453,7 +489,7 @@ export function Suggestions({
                     {verdict.escolhas.map((e, i) => (
                       <li key={i} className="text-ink">
                         <span className="font-medium">{e.titulo}</span>
-                        {e.por_que && <span className="text-dim"> — {e.por_que}</span>}
+                        {e.por_que && <span className="text-dim">, {e.por_que}</span>}
                       </li>
                     ))}
                   </ul>

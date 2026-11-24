@@ -168,7 +168,7 @@ export default async function TimePage({ searchParams }: { searchParams: Promise
       </div>
 
       {/* D49: tres papeis e a matriz do que cada um pode fazer */}
-      <section className="mt-12 max-w-3xl">
+      <section className="mt-12 w-full">
         <h2 className="mb-1 text-sm font-semibold text-ink">Papéis e permissões</h2>
         <p className="mb-4 text-xs text-faint">Analista sugere e cria; gestor decide e publica; administrador configura o estúdio.</p>
         <div className="overflow-x-auto rounded-lg border border-line bg-panel">
@@ -187,7 +187,7 @@ export default async function TimePage({ searchParams }: { searchParams: Promise
                   <td className="px-4 py-2 text-dim">{acao}</td>
                   {quem.map((ok, i) => (
                     <td key={i} className="px-3 py-2 text-center">
-                      <span className={ok ? "text-ok" : "text-faint"} aria-label={ok ? "permitido" : "não permitido"}>{ok ? "✓" : "—"}</span>
+                      <span className={ok ? "text-ok" : "text-faint"} aria-label={ok ? "permitido" : "não permitido"}>{ok ? "✓" : "-"}</span>
                     </td>
                   ))}
                 </tr>

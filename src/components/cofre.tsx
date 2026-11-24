@@ -22,7 +22,7 @@ export function Cofre({ marcas, settings }: { marcas: { slug: string; nome: stri
                 <li key={item} className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="min-w-44 text-dim">{item}</span>
                   <span className={ok ? "text-ok" : "text-faint"}>
-                    {ok ? `•••• ${settings[`${chaveCofre(m.slug, item)}.ult4`] ?? ""} · criado em ${settings[`${chaveCofre(m.slug, item)}.criado`] ? new Date(settings[`${chaveCofre(m.slug, item)}.criado`]).toLocaleDateString("pt-BR") : "—"}` : "não configurado"}
+                    {ok ? `•••• ${settings[`${chaveCofre(m.slug, item)}.ult4`] ?? ""} · criado em ${settings[`${chaveCofre(m.slug, item)}.criado`] ? new Date(settings[`${chaveCofre(m.slug, item)}.criado`]).toLocaleDateString("pt-BR") : "-"}` : "não configurado"}
                   </span>
                   <form action={salvarSegredo} className="ml-auto flex gap-1.5">
                     <input type="hidden" name="slug" value={m.slug} />
