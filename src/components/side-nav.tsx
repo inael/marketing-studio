@@ -12,9 +12,35 @@ import { MobileNav } from "@/components/mobile-nav";
 import { OfflineBanner } from "@/components/offline-banner";
 import { RetornoSessao } from "@/components/retorno-sessao";
 import { BrandSwitcher, type MarcaOpcao } from "@/components/brand-switcher";
+import type { ContagensMenu } from "@/server/menu-contagens";
 
 type Item = { href: string; label: string; hint?: string };
 type Section = { key: string; label: string; icon: ReactNode; items: Item[] };
+
+type ItemMenu = { href: string; label: string; contagem?: keyof ContagensMenu; alerta?: boolean };
+type GrupoMenu = { titulo: string; itens: ItemMenu[] };
+
+// Menu lateral em dois grupos: o dia a dia no alto, a gestão embaixo. Contadores ao lado do item.
+const GRUPOS: GrupoMenu[] = [
+  { titulo: "Dia a dia", itens: [
+    { href: "/dashboard", label: "Início" },
+    { href: "/aprovacao", label: "Aprovação", contagem: "aprovacao", alerta: true },
+    { href: "/historico", label: "Histórico", contagem: "falhas", alerta: true },
+    { href: "/criar", label: "Criar" },
+    { href: "/posts", label: "Posts" },
+    { href: "/calendario", label: "Calendário" },
+    { href: "/biblioteca", label: "Biblioteca" },
+    { href: "/notificacoes", label: "Notificações", contagem: "notificacoes" },
+  ] },
+  { titulo: "Gestão", itens: [
+    { href: "/marcas", label: "Marcas" },
+    { href: "/contas", label: "Contas" },
+    { href: "/time", label: "Time" },
+    { href: "/relatorios", label: "Relatórios" },
+    { href: "/consumo", label: "Consumo de IA" },
+    { href: "/config", label: "Configurações" },
+  ] },
+];
 
 const I = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-[18px] w-[18px]">
@@ -71,12 +97,14 @@ export function AppShell({
   picture,
   marcas = [],
   marcaAtiva = null,
+  contagens = { aprovacao: 0, falhas: 0, notificacoes: 0 },
   children,
 }: {
   who: string;
   picture?: string;
   marcas?: MarcaOpcao[];
   marcaAtiva?: string | null;
+  contagens?: ContagensMenu;
   children: ReactNode;
 }) {
   const marcaSel = marcas.find((m) => m.slug === marcaAtiva) ?? null;
@@ -102,89 +130,74 @@ export function AppShell({
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden md:flex">
-        {/* trilho */}
-        <div className="flex w-16 flex-col items-center border-r border-line bg-panel py-3">
-          <Link
-            href="/dashboard"
-            className="mb-3 grid h-9 w-9 shrink-0 place-items-center rounded-md bg-ink text-xs font-bold text-canvas"
-            title="Marketing Studio"
-          >
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-line bg-panel md:flex">
+        <div className="flex items-center gap-2.5 px-4 py-4">
+          <Link href="/dashboard" className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-ink text-xs font-bold text-canvas" title="Marketing Studio">
             MS
           </Link>
+          <span className="text-sm font-semibold text-ink">Marketing Studio</span>
+        </div>
 
-          <nav aria-label="Seções" className="flex flex-1 flex-col items-center gap-1 self-stretch px-1.5">
-            {SECTIONS.map((s) => {
-              const on = current?.key === s.key;
-              const tone = on ? "bg-panel2 text-ink" : "text-faint hover:bg-panel2/60 hover:text-dim";
+        <nav aria-label="Menu principal" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 pb-3">
+          {GRUPOS.map((g) => (
+            <div key={g.titulo}>
+              <div className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">{g.titulo}</div>
+              <ul className="space-y-0.5">
+                {g.itens.map((it) => {
+                  const on = pathname === it.href || pathname.startsWith(it.href + "/");
+                  const n = it.contagem ? contagens[it.contagem] : 0;
+                  return (
+                    <li key={it.href}>
+                      <Link
+                        href={it.href}
+                        aria-current={on ? "page" : undefined}
+                        className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${on ? "bg-panel2 text-ink" : "text-dim hover:bg-panel2/60 hover:text-ink"}`}
+                      >
+                        {it.label}
+                        {n > 0 && (
+                          <span
+                            aria-label={`${n} ${it.contagem === "aprovacao" ? "aguardando aprovação" : it.contagem === "falhas" ? "com falha" : "não lidas"}`}
+                            className={`ml-auto rounded-full px-1.5 text-[10px] font-semibold leading-[18px] ${it.alerta ? "bg-warn/20 text-warn" : "bg-panel2 text-dim"}`}
+                          >
+                            {n}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
 
-              // destino único: navega direto, sem abrir painel
-              if (s.items.length === 1) {
-                return (
-                  <Link
-                    key={s.key}
-                    href={s.items[0].href}
-                    aria-current={on ? "page" : undefined}
-                    className={`${railBtn} ${tone}`}
-                  >
-                    {s.icon}
-                    <span className="text-[9px] leading-none">{s.label}</span>
-                  </Link>
-                );
-              }
-
-              const expanded = openKey === s.key;
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => router.push(s.items[0].href)}
-                  aria-expanded={expanded}
-                  aria-controls="submenu"
-                  className={`${railBtn} ${tone} ${expanded && !on ? "ring-1 ring-line2" : ""}`}
-                >
-                  {s.icon}
-                  <span className="text-[9px] leading-none">{s.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* conta / tema / sair — separados do menu por uma borda */}
-          <div className="mt-2 flex w-full flex-col items-center gap-1 border-t border-line px-1.5 pt-2">
+        {/* marca, conta, tema e saída no rodapé do menu */}
+        <div className="flex flex-col gap-2 border-t border-line px-3 py-3">
+          <BrandSwitcher marcas={marcas} atual={marcaSel?.slug ?? null} />
+          <div className="flex items-center gap-2">
             {picture ? (
               <Avatar src={picture} nome={initials(who)} cor="#3a3a40" title={who} />
             ) : (
-              <span
-                title={who}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-[11px] font-semibold text-dim"
-              >
+              <span title={who} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-[11px] font-semibold text-dim">
                 {initials(who)}
               </span>
             )}
+            <span className="min-w-0 flex-1 truncate text-xs text-dim">{who}</span>
             <ThemeToggle compact />
-            {/* handler de auth do Logto: precisa de navegação real, não client-side */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <button
               type="button"
               onClick={() => setSaindo(true)}
               title="Sair"
               aria-label="Sair da conta"
-              className="grid h-9 w-9 place-items-center rounded-md text-faint transition-colors hover:bg-panel2 hover:text-dim"
+              className="grid h-8 w-8 place-items-center rounded-md text-faint transition-colors hover:bg-panel2 hover:text-dim"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-[18px] w-[18px]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-[16px] w-[16px]">
                 <path d="M15 17v1.5a2 2 0 0 1-2 2H6.5a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2H13a2 2 0 0 1 2 2V7" strokeWidth="1.6" strokeLinecap="round" />
                 <path d="M10.5 12h9m0 0-2.7-2.7M19.5 12l-2.7 2.7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
-          {/* D05: marca atual no rodapé do trilho; o topo fica livre */}
-          <div className="mt-2 flex justify-center px-1">
-            <BrandSwitcher marcas={marcas} atual={marcaSel?.slug ?? null} />
-          </div>
         </div>
-
-        {/* painel de submenu (desativado: as sub-telas agora são abas no topo) */}
       </aside>
 
       {saindo && (
@@ -207,24 +220,31 @@ export function AppShell({
         </div>
       )}
       <OfflineBanner />
-      <main className="pb-20 transition-[padding] duration-200 md:pb-0 md:pl-16">
+      <main className="pb-20 transition-[padding] duration-200 md:pb-0 md:pl-56">
         <div className="mx-auto max-w-6xl px-4 py-5 md:px-8 md:py-8">
           {/* D05: faixa de destaque na cor da marca escolhida */}
           {marcaSel && <div className="mb-4 h-1 rounded-full" style={{ background: marcaSel.cor }} aria-hidden />}
           <RetornoSessao />
           {/* D05 + D04: seletor de marca global e atalho para a paleta de comandos */}
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-6 flex items-center gap-3">
             {/* D04: a propria barra aceita texto (busca) ou "/" (comandos) */}
-            <input
-              aria-label="Buscar ou executar comandos"
-              placeholder="Buscar ou digitar / para comandos"
+            <div className="relative w-full md:max-w-md">
+              <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint">
+                <circle cx="9" cy="9" r="6" />
+                <path d="m14 14 4 4" strokeLinecap="round" />
+              </svg>
+              <input
+                aria-label="Buscar ou executar comandos"
+                placeholder="Buscar ou digitar / para comandos"
               onFocus={(e) => window.dispatchEvent(new CustomEvent("ms:palette", { detail: { q: e.currentTarget.value } }))}
               onChange={(e) => window.dispatchEvent(new CustomEvent("ms:palette", { detail: { q: e.currentTarget.value } }))}
               onKeyDown={(e) => {
                 if (e.key === "Enter") window.dispatchEvent(new CustomEvent("ms:palette-enter"));
               }}
-              className="w-72 rounded-md border border-line bg-panel px-3 py-1.5 text-xs text-ink placeholder:text-faint outline-none focus:border-line2"
+              className="w-full rounded-md border border-line bg-panel py-2 pl-9 pr-10 text-sm text-ink placeholder:text-faint outline-none transition-colors focus:border-line2"
             />
+              <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-line px-1.5 text-[10px] text-faint">/</kbd>
+            </div>
           </div>
           {/* D03: sub-telas da secao como abas no topo; o trilho fica so com as secoes */}
           {current && current.items.length > 1 && (
