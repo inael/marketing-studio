@@ -24,7 +24,7 @@ export function IaFuncoes({
   ];
 
   return (
-    <section className="mb-8 max-w-3xl space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+    <section className="mb-8 w-full space-y-4 rounded-xl border border-line bg-panel/50 p-6">
       <h2 className="text-sm font-semibold text-ink">Provedor de IA por função</h2>
       <p className="text-xs text-dim">
         Cada função usa um provedor principal. Se ele falhar, a reserva assume, quando estiver configurada.

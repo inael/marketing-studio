@@ -29,7 +29,7 @@ function Node({ p, marcas, carga, postsMes }: { p: Persona; marcas: string[]; ca
   return (
     <Link
       href={`/time/${p.id}`}
-      className="flex w-44 flex-col items-center gap-2 rounded-lg border border-line bg-panel p-4 text-center transition-colors hover:border-line2"
+      className="flex w-56 flex-col items-center gap-2.5 rounded-xl border border-line bg-panel p-5 text-center transition-colors hover:border-line2"
     >
       {p.foto_url ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -111,40 +111,50 @@ export default async function TimePage({ searchParams }: { searchParams: Promise
       />
 
       {/* D38: fluxo de criacao e revisao, do analista ate a publicacao */}
-      <ol className="mb-8 flex flex-wrap items-center justify-center gap-2 text-xs" aria-label="Fluxo de criação e revisão">
+      <ol className="mb-10 grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center" aria-label="Fluxo de criação e revisão">
         {[
           { n: "1", t: "Analista cria", d: "sugestão ou rascunho" },
           { n: "2", t: "Gestor revisa", d: "aprova ou pede ajuste" },
           { n: "3", t: "Vai ao ar", d: "publicação ou agendamento" },
         ].map((e, i, lista) => (
-          <li key={e.n} className="flex items-center gap-2">
-            <span className="rounded-md border border-line bg-panel px-3 py-2 text-center">
-              <span className="block font-medium text-ink">{e.n}. {e.t}</span>
-              <span className="block text-[11px] text-faint">{e.d}</span>
+          <li key={e.n} className="contents">
+            <span className="flex items-center gap-3 rounded-xl border border-line bg-panel px-4 py-3.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-warn text-sm font-bold text-canvas">{e.n}</span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-ink">{e.t}</span>
+                <span className="block text-xs text-faint">{e.d}</span>
+              </span>
             </span>
-            {i < lista.length - 1 && <span className="text-faint" aria-hidden>→</span>}
+            {i < lista.length - 1 && <span className="mx-auto hidden text-faint md:block" aria-hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>}
           </li>
         ))}
       </ol>
 
       {/* D36: filtro por marca: so as personas que atendem a marca escolhida */}
-      <div className="mb-6 flex flex-wrap justify-center gap-2 text-xs">
-        <a href="/time" className={`min-h-11 rounded-md border px-3 py-2 md:min-h-0 ${!marcaSel ? "border-line2 bg-panel2 text-ink" : "border-line text-dim"}`}>Todas</a>
+      <div className="mb-8">
+        <div className="mb-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-faint">Filtrar por marca</div>
+      <div className="flex flex-wrap justify-center gap-1.5 rounded-xl border border-line bg-panel p-1.5 text-xs">
+        <a href="/time" className={`inline-flex min-h-10 items-center rounded-lg px-3.5 text-sm transition-colors ${!marcaSel ? "bg-panel2 text-ink shadow-sm" : "text-dim hover:text-ink"}`}>Todas</a>
         {brands.map((b) => (
-          <a key={b.id} href={`/time?marca=${b.slug}`} className={`min-h-11 rounded-md border px-3 py-2 md:min-h-0 ${marcaSel?.id === b.id ? "border-line2 bg-panel2 text-ink" : "border-line text-dim"}`}>
-            <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: b.cor_principal }} />
+          <a key={b.id} href={`/time?marca=${b.slug}`} className={`inline-flex min-h-10 items-center rounded-lg px-3.5 text-sm transition-colors ${marcaSel?.id === b.id ? "bg-panel2 text-ink shadow-sm" : "text-dim hover:text-ink"}`}>
+            <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ background: b.cor_principal }} />
             {b.nome}
           </a>
         ))}
       </div>
+      </div>
 
       {/* D38: clicar numa pessoa leva aos posts dela */}
-      <div className="mb-6 flex flex-wrap justify-center gap-2 text-xs">
+      <div className="mb-10">
+        <div className="mb-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-faint">Posts de cada pessoa</div>
+      <div className="flex flex-wrap justify-center gap-2 text-xs">
         {[...gestores, ...analistas].map((p) => (
-          <a key={p.id} href={`/posts?analista=${encodeURIComponent(p.nome)}`} className="min-h-11 rounded-md border border-line px-3 py-2 text-dim hover:text-ink md:min-h-0">
-            posts de {p.nome} →
+          <a key={p.id} href={`/posts?analista=${encodeURIComponent(p.nome)}`} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-panel px-3.5 text-sm text-dim transition-colors hover:text-ink">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-panel2 text-[11px] font-semibold text-ink">{p.nome.charAt(0)}</span>
+            {p.nome}
           </a>
         ))}
+      </div>
       </div>
 
       {/* Organograma */}
@@ -187,7 +197,7 @@ export default async function TimePage({ searchParams }: { searchParams: Promise
                   <td className="px-4 py-2 text-dim">{acao}</td>
                   {quem.map((ok, i) => (
                     <td key={i} className="px-3 py-2 text-center">
-                      <span className={ok ? "text-ok" : "text-faint"} aria-label={ok ? "permitido" : "não permitido"}>{ok ? "✓" : "-"}</span>
+                      <span className={ok ? "text-ok" : "text-faint"} aria-label={ok ? "permitido" : "não permitido"}>{ok ? (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="mx-auto h-4 w-4" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4 4 10-10" /></svg>) : (<span aria-hidden className="mx-auto block h-px w-3 bg-line2" />)}</span>
                     </td>
                   ))}
                 </tr>

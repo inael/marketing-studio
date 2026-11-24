@@ -166,28 +166,40 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
   return (
     <div className="space-y-8">
       {/* Briefing */}
-      <div className="space-y-5">
+      <div className="space-y-6 rounded-xl border border-line bg-panel p-5">
         <div>
-          <label className={labelCls}>Marca</label>
-          <div className="flex flex-wrap gap-2">
-            {brands.map((b) => (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => setBrandId(b.id)}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                  brandId === b.id ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
-                }`}
-              >
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.cor_principal }} />
-                {b.nome}
-              </button>
-            ))}
+          <header className="mb-3 flex items-center gap-3">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-warn text-xs font-bold text-canvas">1</span>
+            <h2 className="text-sm font-semibold text-ink">Marca</h2>
+          </header>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {brands.map((b) => {
+              const on = brandId === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setBrandId(b.id)}
+                  className={`relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                    on ? "border-warn bg-panel2 text-ink" : "border-line bg-panel2/40 text-dim hover:border-line2 hover:text-ink"
+                  }`}
+                >
+                  <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: b.cor_principal }} />
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-canvas" style={{ background: b.cor_principal }}>{b.nome.charAt(0)}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{b.nome}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div>
-          <label className={labelCls} htmlFor="brief">Ideia / roteiro do vídeo</label>
+          <header className="mb-3 flex items-center gap-3">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-warn text-xs font-bold text-canvas">2</span>
+            <h2 className="text-sm font-semibold text-ink">Ideia e roteiro</h2>
+          </header>
+          <label className="sr-only" htmlFor="brief">Ideia / roteiro do vídeo</label>
           <textarea
             id="brief"
             value={brief}
@@ -198,6 +210,11 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
           />
         </div>
 
+        <div>
+          <header className="mb-3 flex items-center gap-3">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-warn text-xs font-bold text-canvas">3</span>
+            <h2 className="text-sm font-semibold text-ink">Cenas e modelos</h2>
+          </header>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls} htmlFor="n">Cenas</label>
@@ -217,14 +234,18 @@ export function Storyboard({ brands }: { brands: BrandLite[] }) {
           </div>
         </div>
 
-        {error && <p className="rounded-md border border-bad/30 bg-bad/5 px-3 py-2 text-sm text-bad">{error}</p>}
+        </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={gerarStoryboard} disabled={loading} className={btnPrimary}>
+        {error && <p className="rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-sm text-bad">{error}</p>}
+
+        <div className="flex flex-wrap gap-3 border-t border-line pt-5">
+          <button type="button" onClick={gerarStoryboard} disabled={loading} className={`${btnPrimary} gap-2`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" /></svg>
             {loading ? "montando cenas…" : "Gerar storyboard"}
           </button>
           {scenes.length > 0 && (
-            <button type="button" onClick={salvarRascunho} disabled={saving} className={btnGhost}>
+            <button type="button" onClick={salvarRascunho} disabled={saving} className={`${btnGhost} gap-2`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></svg>
               {saving ? "salvando…" : "Salvar frames como rascunho"}
             </button>
           )}

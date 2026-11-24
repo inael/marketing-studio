@@ -104,16 +104,21 @@ export function SectionHead({
   hint,
   state,
   badgeLabel,
+  icone,
 }: {
   title: string;
   hint?: React.ReactNode;
   state: ConnState;
   badgeLabel?: string;
+  icone?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold text-ink">{title}</h2>
+        <h2 className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-ink">
+          {icone && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-panel2 text-warn">{icone}</span>}
+          {title}
+        </h2>
         {hint && <p className="mt-1 text-xs text-dim">{hint}</p>}
       </div>
       <ConnBadge state={state} label={badgeLabel} />

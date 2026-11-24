@@ -36,6 +36,17 @@ function stateOf(parts: boolean[]): ConnState {
   return parts.some(Boolean) ? "partial" : "off";
 }
 
+// ícone de cada integração no painel de status
+function iconeStatus(ancora: string) {
+  const traco = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "aria-hidden": true, className: "h-4 w-4", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (ancora === "ia-texto") return <svg {...traco}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" /></svg>;
+  if (ancora === "higgsfield") return <svg {...traco}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="m20.5 16-5-5-7.5 7.5" /></svg>;
+  if (ancora === "elevenlabs") return <svg {...traco}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg>;
+  if (ancora === "twitter") return <svg {...traco}><path d="M4 4l16 16M20 4 4 20" /></svg>;
+  if (ancora === "automacao") return <svg {...traco}><path d="M13 3 5 13.5h6L10 21l8-10.5h-6L13 3z" /></svg>;
+  return <svg {...traco}><path d="M10 13.5a4.5 4.5 0 0 0 6.4 0l2.6-2.6a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10.5a4.5 4.5 0 0 0-6.4 0l-2.6 2.6a4.5 4.5 0 0 0 6.4 6.4l1-1" /></svg>;
+}
+
 export default async function ConfigPage({
   searchParams,
 }: {
@@ -98,11 +109,16 @@ export default async function ConfigPage({
 
       {/* Panorama: o que já está no ar, num relance */}
       <section className="mb-8 w-full rounded-lg border border-line bg-panel/50 p-5">
-        <h2 className="text-sm font-semibold text-ink">Status das integrações</h2>
+        <h2 className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-ink">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-panel2 text-warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5" /></svg>
+          </span>
+          Status das integrações
+        </h2>
         <p className="mt-1 text-xs text-dim">
           Resumo do que já está ativo. Cada item abaixo repete o selo na sua seção.
         </p>
-        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+        <ul className="mt-5 grid gap-3 md:grid-cols-2">
           {/* M25: o que esta com problema vem primeiro */}
           {[
             { label: provider === "litellm" ? "IA de texto (LiteLLM)" : "IA de texto (UseTokia)", state: aiState, impacto: "sem IA de texto, sugestões e legendas não são geradas", ancora: "ia-texto" },
@@ -120,18 +136,23 @@ export default async function ConfigPage({
           ].sort((a, b) => Number(a.state === "ok") - Number(b.state === "ok")).map((row) => (
             <li
               key={row.label}
-              className="flex items-center justify-between gap-3 rounded-md border border-line bg-panel2/60 px-3 py-2"
+              className="flex min-w-0 items-start justify-between gap-3 rounded-lg border border-line bg-panel2/60 p-3.5"
             >
-              <span className="min-w-0">
-                <span className="block truncate text-xs text-dim">{row.label}</span>
+              <span className="flex min-w-0 items-start gap-3">
+                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-panel text-dim">
+                  {iconeStatus(row.ancora)}
+                </span>
+                <span className="min-w-0">
+                <span className="block text-sm font-medium text-ink">{row.label}</span>
                 {row.state !== "ok" && (
-                  <span className="block text-[11px] text-warn">
+                  <span className="mt-0.5 block text-xs leading-snug text-warn">
                     {row.impacto} · 
                     <a href={`#${row.ancora}`} className="text-info hover:underline">destravar →</a>
                   </span>
                 )}
+                </span>
               </span>
-              <ConnBadge state={row.state} label={row.badge} />
+              <span className="shrink-0"><ConnBadge state={row.state} label={row.badge} /></span>
             </li>
           ))}
         </ul>
@@ -151,6 +172,7 @@ export default async function ConfigPage({
         <section id="ia-texto" className="space-y-5 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="IA de texto (legenda)"
+            icone={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" /></svg>}
             hint="Provedor OpenAI-compatível usado pra gerar/reescrever legendas com o tom de voz da marca."
             state={aiState}
           />
@@ -226,6 +248,7 @@ export default async function ConfigPage({
         <section id="higgsfield" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="Higgsfield (imagem)"
+            icone={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="m20.5 16-5-5-7.5 7.5" /></svg>}
             hint={
               <>
                 Gera imagens dos posts. A Higgsfield autentica com{" "}
@@ -256,6 +279,7 @@ export default async function ConfigPage({
         <section id="elevenlabs" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="ElevenLabs (narração)"
+            icone={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg>}
             hint="API key e voz padrão pra narrar reels e vídeos quando precisar."
             state={elevenState}
           />
@@ -276,6 +300,7 @@ export default async function ConfigPage({
         <section id="twitter" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="Twitter/X (fonte de sugestões)"
+            icone={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4l16 16M20 4 4 20" /></svg>}
             hint={
               <>
                 Login de uma conta X pro scraper self-host puxar trends e tweets do nicho.{" "}
@@ -317,6 +342,7 @@ export default async function ConfigPage({
         <section id="automacao" className="space-y-4 rounded-lg border border-line bg-panel/50 p-6">
           <SectionHead
             title="Automação (piloto automático)"
+            icone={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6L13 3z" /></svg>}
             hint="Deixe o time trabalhar sozinho. Você mantém o controle: nada é publicado sem que você ligue explicitamente o gestor."
             state={autoState}
             badgeLabel={autoLabel}
@@ -353,6 +379,7 @@ export default async function ConfigPage({
       <section id="contas" className="mt-8 w-full space-y-4 rounded-lg border border-line bg-panel/50 p-6">
         <SectionHead
           title="Contas conectadas das marcas"
+            icone={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13.5a4.5 4.5 0 0 0 6.4 0l2.6-2.6a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10.5a4.5 4.5 0 0 0-6.4 0l-2.6 2.6a4.5 4.5 0 0 0 6.4 6.4l1-1" /></svg>}
           hint="Instagram e LinkedIn são conectados por marca. Aqui só mostramos o estado; para conectar, abra a marca."
           state={stateOf([igOn > 0, liOn > 0])}
           badgeLabel={`${igOn} Instagram · ${liOn} LinkedIn`}

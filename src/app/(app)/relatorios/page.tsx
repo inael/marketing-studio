@@ -109,10 +109,15 @@ export default async function RelatoriosPage({
       <PageHeader
         title="Relatórios"
         subtitle="Seu perfil × concorrentes no Instagram"
-        action={<Link href={q(active.slug, days, true)} className="rounded-md border border-line px-3 py-1.5 text-xs text-dim hover:text-ink">Atualizar</Link>}
+        action={
+          <Link href={q(active.slug, days, true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-panel px-4 text-sm text-dim hover:text-ink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 4v5h-5" /></svg>
+            Atualizar
+          </Link>
+        }
       />
 
-      <div className="mb-4 space-y-3">
+      <div className="mb-6 space-y-3 rounded-xl border border-line bg-panel p-4">
         <div className="flex flex-wrap gap-2">
           {brands.map((b) => (
             <Link key={b.id} href={q(b.slug, days)} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${active.id === b.id ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"}`}>
@@ -121,7 +126,7 @@ export default async function RelatoriosPage({
             </Link>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
           {[7, 30, 90].map((d) => (
             <Link key={d} href={q(active.slug, d)} className={tabCls(days === d)}>
               {d} dias

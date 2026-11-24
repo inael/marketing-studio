@@ -44,15 +44,16 @@ export default async function ConsumoPage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader title="Consumo" subtitle="Tokens e créditos de IA por funcionário" />
 
-      <div className="mb-5 flex gap-2">
+      <div className="mb-6 inline-flex flex-wrap gap-1 rounded-xl border border-line bg-panel p-1.5">
         {[7, 30, 90].map((x) => (
           <Link
             key={x}
             href={`/consumo?days=${x}`}
-            className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
-              days === x ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
+            className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 text-sm transition-colors ${
+              days === x ? "bg-panel2 text-ink shadow-sm" : "text-dim hover:text-ink"
             }`}
           >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
             {x} dias
           </Link>
         ))}
@@ -64,10 +65,16 @@ export default async function ConsumoPage({ searchParams }: { searchParams: Prom
         </p>
       ) : (
         <div className="space-y-8">
-          <form action={salvarTeto} className="flex flex-wrap items-center gap-2 text-xs text-dim">
-            <label htmlFor="teto">Teto mensal (US$)</label>
-            <input id="teto" name="teto" type="number" min="1" step="1" defaultValue={teto} className="min-h-11 w-24 rounded-md border border-line bg-panel2 px-2 text-sm text-ink" />
-            <button className="min-h-11 rounded-md border border-line px-3 text-dim hover:text-ink">Salvar teto</button>
+          <form action={salvarTeto} className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-panel p-4">
+            <span className="grid h-10 w-10 place-items-center rounded-lg bg-panel2 text-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M14.5 9.5c-.4-.9-1.3-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2c-1.2 0-2.2-.6-2.6-1.5M12 6.5v1.5M12 16v1.5" /></svg></span>
+            <label htmlFor="teto" className="flex min-w-0 flex-col gap-1.5 text-xs text-dim">
+              Teto mensal (US$)
+              <input id="teto" name="teto" type="number" min="1" step="1" defaultValue={teto} className="min-h-11 w-32 rounded-lg border border-line bg-panel2 px-3 text-sm text-ink" />
+            </label>
+            <button className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line px-4 text-sm text-dim hover:text-ink">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></svg>
+              Salvar teto
+            </button>
           </form>
 
           {/* D35: alertas em tres faixas (70%, 90%, 100% do teto), cada um com a acao que resolve */}
