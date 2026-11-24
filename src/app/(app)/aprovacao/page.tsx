@@ -11,7 +11,7 @@ export default async function AprovacaoPage() {
   const quando = (p: { scheduled_at: string | null; created_at: unknown }) =>
     new Date((p.scheduled_at ?? (p.created_at as string)) as string).getTime();
   const fila = posts
-    .filter((p) => p.status === "draft" && p.media.length > 0)
+    .filter((p) => p.status === "draft")
     .sort((a, b) => quando(a) - quando(b));
   const brands = brandsRaw.map((b) => ({
     id: b.id,

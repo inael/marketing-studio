@@ -54,7 +54,7 @@ export async function approvePost(id: string): Promise<ActionResult> {
   const neg = await negadoSePreciso(p.brand_id, "aprovar", "approvePost");
   if (neg) return neg;
   if (p.media.length === 0) {
-    return { ok: false, error: "esse post ainda não tem imagem — gere a arte antes de aprovar" };
+    return { ok: false, error: "esse post ainda não tem imagem, gere a arte antes de aprovar" };
   }
   // B10: a mudanca de estado passa pelo ponto unico (transicao valida, registro, conferencia)
   const t = await transicionar(id, "approved", null, "aprovado na fila");

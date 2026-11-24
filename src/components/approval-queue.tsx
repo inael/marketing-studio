@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { avisar } from "@/components/avisos";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Post } from "@/server/posts";
@@ -32,6 +33,12 @@ export function ApprovalQueue({ posts, brands }: { posts: Post[]; brands: BrandL
   const [agora, setAgora] = useState(() => Date.now());
 
   const byId = useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands]);
+  // marcas sem rascunho entram no fim, e a última linha (se incompleta) é centralizada no desktop
+  const vazias = brands.filter((br) => !posts.some((p) => p.brand_id === br.id));
+  const totalCartoes = posts.length + vazias.length;
+  const resto = totalCartoes % 3;
+  const inicioUltimaLinha = resto === 0 ? -1 : totalCartoes - resto;
+  const deslocar = (i: number) => (i !== inicioUltimaLinha ? "" : resto === 2 ? "xl:col-start-2" : "xl:col-start-3");
   const atual = posts[Math.min(idx, posts.length - 1)];
   const b = byId.get(atual.brand_id);
 
@@ -64,6 +71,7 @@ export function ApprovalQueue({ posts, brands }: { posts: Post[]; brands: BrandL
     startTransition(async () => {
       const r = await approvePost(atual.id);
       setMsg(r.ok ? { kind: "ok", text: "Aprovado. Sai no horário marcado." } : { kind: "err", text: r.error });
+      avisar(r.ok ? "ok" : "erro", r.ok ? "Aprovado. Sai no horário marcado." : r.error);
       router.refresh();
     });
   }
@@ -72,6 +80,7 @@ export function ApprovalQueue({ posts, brands }: { posts: Post[]; brands: BrandL
     startTransition(async () => {
       const r = await postponePost(atual.id);
       setMsg(r.ok ? { kind: "ok", text: "Adiado para o mesmo horário de amanhã." } : { kind: "err", text: r.error });
+      avisar(r.ok ? "ok" : "erro", r.ok ? "Adiado para o mesmo horário de amanhã." : r.error);
       router.refresh();
     });
   }
@@ -82,9 +91,11 @@ export function ApprovalQueue({ posts, brands }: { posts: Post[]; brands: BrandL
       const r = await pedirAjustePost(atual.id, comentario);
       if (r.ok) {
         setMsg({ kind: "ok", text: "Ajuste pedido e salvo no post." });
+        avisar("ok", "Ajuste pedido e salvo no post.");
         setComentario("");
       } else {
         setMsg({ kind: "err", text: r.error });
+        avisar("erro", r.error);
       }
       router.refresh();
     });
@@ -112,12 +123,14 @@ export function ApprovalQueue({ posts, brands }: { posts: Post[]; brands: BrandL
         if (r.ok) ok++;
       }
       setMsg({ kind: "ok", text: `${ok} post(s) aprovado(s).` });
+      avisar("ok", `${ok} post(s) aprovado(s).`);
       router.refresh();
     });
   const decidir = (id: string, acao: "aprovar" | "adiar") =>
     startTransition(async () => {
       const r = acao === "aprovar" ? await approvePost(id) : await postponePost(id);
       setMsg(r.ok ? { kind: "ok", text: acao === "aprovar" ? "Post aprovado." : "Adiado para amanhã." } : { kind: "err", text: r.error });
+      avisar(r.ok ? "ok" : "erro", r.ok ? acao === "aprovar" ? "Post aprovado." : "Adiado para amanhã." : r.error);
       router.refresh();
     });
 
@@ -127,36 +140,71 @@ export function ApprovalQueue({ posts, brands }: { posts: Post[]; brands: BrandL
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-dim">{posts.length} peça(s) aguardam revisão</p>
           <button type="button" onClick={aprovarTodos} disabled={pending || posts.length === 0} className="min-h-11 rounded-md border border-line px-4 text-sm text-dim hover:text-ink disabled:opacity-40">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12.5l4 4 6-7M12 16.5l1 1 8-9" /></svg>
             Aprovar as {posts.filter((p) => p.media.length > 0).length}
           </button>
         </div>
-        <div className="grid gap-4 xl:grid-cols-2">
-          {posts.map((p) => {
+        <div className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-6">
+          {posts.map((p, i) => {
             const pb = byId.get(p.brand_id);
+            const comArte = p.media.length > 0;
             return (
-              <div key={p.id} className="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
-                <div className="flex items-center justify-between text-xs text-faint">
-                  <span>{pb?.nome ?? "?"}</span>
-                  <span>{faltam(p.scheduled_at, agora)}</span>
+              <div key={p.id} className={`min-h-[560px] min-w-0 flex flex-col gap-3 rounded-xl border p-3 xl:col-span-2 border-line bg-panel ${deslocar(i)}`}>
+                <div className="flex items-center justify-between gap-2 text-xs text-faint">
+                  <span className="truncate">{pb?.nome ?? "?"}</span>
+                  <span className="shrink-0">{faltam(p.scheduled_at, agora)}</span>
                 </div>
-                <InstagramPreview
-                  compact
-                  username={pb?.slug ?? "?"}
-                  cor={pb?.cor_principal ?? "#000"}
-                  picture={pb?.avatar}
-                  media={p.media}
-                  legenda={p.legenda}
-                  hashtags={p.hashtags}
-                  tipo={p.tipo}
-                />
-                <div className="flex gap-2 text-xs">
-                  <Link href="/posts" className="min-h-11 flex-1 rounded-md border border-line px-3 py-2.5 text-center text-dim hover:text-ink">Ajustar</Link>
-                  <button type="button" onClick={() => decidir(p.id, "adiar")} disabled={pending} className="min-h-11 flex-1 rounded-md border border-line px-3 text-dim hover:text-ink">Adiar</button>
-                  <button type="button" onClick={() => decidir(p.id, "aprovar")} disabled={pending || p.media.length === 0} className="min-h-11 flex-1 rounded-md bg-ink px-3 font-medium text-canvas disabled:opacity-40">Aprovar</button>
+                <div className={`flex items-center justify-between gap-2 rounded-md px-3 py-1.5 text-xs ${comArte ? "bg-ok/10 text-ok" : "border border-warn/40 bg-warn/10 text-warn"}`}>
+                  <span>{comArte ? "Arte pronta" : "Sem arte ainda"}</span>
+                  {comArte ? null : (
+                    <Link href="/posts" className="inline-flex items-center gap-1 font-medium hover:underline">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3 w-3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" /></svg>
+                      Gerar arte
+                    </Link>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <InstagramPreview
+                    compact
+                    username={pb?.slug ?? "?"}
+                    cor={pb?.cor_principal ?? "#000"}
+                    picture={pb?.avatar}
+                    media={p.media}
+                    legenda={p.legenda}
+                    hashtags={p.hashtags}
+                    tipo={p.tipo}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 text-xs">
+                  <Link href="/posts" className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-line px-2 text-center text-dim hover:text-ink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z" /></svg>Ajustar</Link>
+                  <button type="button" onClick={() => decidir(p.id, "adiar")} disabled={pending} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-line px-2 text-dim hover:text-ink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>Adiar</button>
+                  <button type="button" onClick={() => decidir(p.id, "aprovar")} disabled={pending || !comArte} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md bg-ink px-2 font-medium text-canvas disabled:opacity-40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 12.5 3.5 3.5 7.5-8" /></svg>Aprovar</button>
                 </div>
               </div>
             );
           })}
+          {vazias.map((br, k) => (
+            <div key={br.id} className={`min-h-[560px] min-w-0 flex flex-col gap-3 rounded-xl border p-3 xl:col-span-2 border-dashed border-line bg-panel/40 ${deslocar(posts.length + k)}`}>
+              <div className="flex items-center justify-between gap-2 text-xs text-faint">
+                <span className="truncate">{br.nome}</span>
+                <span className="shrink-0">sem horário</span>
+              </div>
+              <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-line px-3 py-1.5 text-xs text-faint">
+                <span>Sem rascunho</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex aspect-[9/16] w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-lg bg-panel2/60 text-center">
+                  <span className="grid h-12 w-12 place-items-center rounded-full text-base font-semibold text-canvas" style={{ background: br.cor_principal }}>{br.nome.charAt(0)}</span>
+                  <span className="px-4 text-xs text-faint">Nenhum rascunho para revisar</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 text-xs">
+                <span className="inline-flex min-h-11 items-center justify-center rounded-md border border-line px-2 text-faint opacity-50">Ajustar</span>
+                <span className="inline-flex min-h-11 items-center justify-center rounded-md border border-line px-2 text-faint opacity-50">Adiar</span>
+                <Link href="/criar" className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-line px-2 text-dim hover:text-ink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-3.5 w-3.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>Criar</Link>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

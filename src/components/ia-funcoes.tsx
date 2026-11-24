@@ -58,7 +58,7 @@ export function IaFuncoes({
             <tr className="border-b border-line/60">
               <td className="py-2 pr-3 text-dim">Imagens</td>
               <td className="px-3 text-dim">Higgsfield</td>
-              <td className="px-3 text-faint">—</td>
+              <td className="px-3 text-faint">-</td>
             </tr>
           </tbody>
         </table>

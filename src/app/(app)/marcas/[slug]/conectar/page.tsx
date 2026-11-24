@@ -67,7 +67,7 @@ export default async function ConectarPage({
           },
         ];
         return (
-          <ol className="mb-6 max-w-2xl space-y-2">
+          <ol className="mb-6 w-full space-y-2">
             {linhas.map((l, i) => (
               <li key={l.titulo} className="flex items-start gap-3 rounded-lg border border-line bg-panel px-4 py-3 text-sm">
                 <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] ${l.ok ? "bg-ok/15 text-ok" : "bg-panel2 text-faint"}`}>
@@ -94,7 +94,7 @@ export default async function ConectarPage({
           e clique em Conectar de novo.
         </p>
       ) : (
-        <div className="grid max-w-2xl gap-3 sm:grid-cols-2">
+        <div className="grid w-full gap-3 sm:grid-cols-2">
           {items.map((it) => {
             const action =
               kind === "linkedin"

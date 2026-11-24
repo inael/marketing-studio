@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Avatar } from "@/components/avatar";
+import { avisar } from "@/components/avisos";
 import { useRouter } from "next/navigation";
 import { createPostAction, type CreateInput } from "@/app/(app)/criar/actions";
 import { InstagramPreview } from "@/components/instagram-preview";
@@ -314,16 +316,48 @@ export function CreateForm({
   }
 
   // M45: envio com progresso real; se a conexao cai, retoma do arquivo onde parou
-  // envio de imagem pelo servidor (/api/media): funciona sem depender de CORS no bucket
-  async function enviarArquivo(blob: Blob, name: string): Promise<string> {
-    const fd = new FormData();
-    fd.append("file", blob, name);
-    fd.append("brand_id", brand?.id ?? "");
-    const r = await fetch("/api/media", { method: "POST", body: fd });
-    if (sessaoExpirou(r)) throw new Error("sessão expirada");
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error ?? "falha no upload");
-    return data.url as string;
+  // B05: a imagem vai direto ao armazenamento com URL assinada; o servidor confere ao final
+  async function enviarArquivo(blob: Blob, name: string, onPct: (p: number) => void): Promise<string> {
+    const mime = blob.type || "image/jpeg";
+    // B06: dimensoes lidas do arquivo antes do envio
+    let dim: { largura?: number; altura?: number } = {};
+    try {
+      const bmp = await createImageBitmap(blob);
+      dim = { largura: bmp.width, altura: bmp.height };
+      bmp.close?.();
+    } catch {
+      dim = {};
+    }
+    const pedido = await fetch("/api/media/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: name, mime, tamanho: blob.size, brandId: brand?.id ?? "" }),
+    });
+    if (sessaoExpirou(pedido)) throw new Error("sessão expirada");
+    const dados = await pedido.json();
+    if (!pedido.ok) throw new Error(dados.error ?? "falha no envio");
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", dados.putUrl as string);
+      xhr.setRequestHeader("Content-Type", mime);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onPct(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("envio recusado pelo armazenamento")));
+      xhr.onerror = () => reject(new Error("conexão caiu"));
+      xhr.send(blob);
+    });
+    const conf = await fetch("/api/media/confirmar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: dados.id, key: dados.key, tamanho: blob.size, mime, largura: dim.largura, altura: dim.altura }),
+    });
+    const cd = await conf.json();
+    if (!conf.ok) {
+      const lista = (cd.problemas as { motivo: string; correcao: string }[] | undefined) ?? [];
+      throw new Error(lista.length ? lista.map((p) => `${p.motivo} (${p.correcao})`).join("; ") : (cd.error ?? "o arquivo não confere"));
+    }
+    return dados.url as string;
   }
 
   async function processar(fila: { blob: Blob; name: string }[]) {
@@ -334,7 +368,9 @@ export function CreateForm({
       while (restante.length) {
         const item = restante[0];
         const feitos = fila.length - restante.length;
-        const url = await enviarArquivo(item.blob, item.name);
+        const url = await enviarArquivo(item.blob, item.name, (pct) =>
+          setUpProg({ nome: item.name, pct, feitos, total: fila.length }),
+        );
         setMedia((m) => [...m, url]);
         restante.shift();
       }
@@ -386,8 +422,10 @@ export function CreateForm({
       } catch {
         // sem persistencia
       }
+      avisar("ok", mode === "agendar" ? "Post agendado." : mode === "publicar" ? "Post enviado para publicação." : "Rascunho salvo.");
       router.push("/posts");
     } else {
+      avisar("erro", res.error);
       setError(res.error);
       setBusy(null);
     }
@@ -507,20 +545,24 @@ export function CreateForm({
                   key={b.id}
                   type="button"
                   onClick={() => setBrandId(b.id)}
-                  className={`flex min-w-44 items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors sm:min-w-0 ${
-                    sel ? "border-line2 bg-panel2 text-ink" : "border-line text-dim hover:text-ink"
+                  className={`relative flex min-w-44 items-center gap-3 overflow-hidden rounded-xl border px-3 py-3 text-left transition-colors sm:min-w-0 ${
+                    sel ? "border-warn bg-panel2 text-ink" : "border-line bg-panel text-dim hover:border-line2 hover:text-ink"
                   }`}
                 >
-                  <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: b.cor_principal }} aria-hidden />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium">{b.nome}</span>
+                  <span className="absolute inset-y-0 left-0 w-1" style={{ background: b.cor_principal }} aria-hidden />
+                  <Avatar src={b.avatar} nome={b.nome} cor={b.cor_principal} size={32} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{b.nome}</span>
                     {/* D12: status do Instagram e ultimo post da marca */}
-                    <span className="block text-[11px] text-faint">
-                      <span className={b.ig ? "text-ok" : "text-warn"}>{b.ig ? "Instagram ✓" : "Instagram pendente"}</span>
-                      {" · "}
-                      {b.ultimo ? `último post ${new Date(b.ultimo).toLocaleDateString("pt-BR")}` : "sem posts ainda"}
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-faint">
+                      <span className={`inline-flex items-center gap-1 ${b.ig ? "text-ok" : "text-warn"}`}>
+                        <span aria-hidden>{b.ig ? "●" : "○"}</span>
+                        {b.ig ? "Instagram conectado" : "Instagram pendente"}
+                      </span>
+                      <span>{b.ultimo ? `último ${new Date(b.ultimo).toLocaleDateString("pt-BR")}` : "sem posts ainda"}</span>
                     </span>
                   </span>
+                  {sel && <span className="h-2 w-2 shrink-0 rounded-full bg-warn" aria-hidden />}
                 </button>
               );
             })}
@@ -864,7 +906,7 @@ export function CreateForm({
                         <span>Variação {"ABC"[i]}</span>
                         {varBusy.includes(i) && <span className="text-info">gerando…</span>}
                       </div>
-                      <p className="min-h-24 flex-1 whitespace-pre-line text-xs leading-relaxed text-ink">{v.texto || "—"}</p>
+                      <p className="min-h-24 flex-1 whitespace-pre-line text-xs leading-relaxed text-ink">{v.texto || "-"}</p>
                       <div className="mt-2 flex flex-wrap gap-1">
                         <select
                           aria-label={`Tom da variação ${"ABC"[i]}`}
@@ -1048,11 +1090,13 @@ export function CreateForm({
             </button>
           )}
           {step < 5 && (
-            <button type="button" onClick={() => setStep((s) => s + 1)} className={btnPrimary}>
-              Avançar ›
+            <button type="button" onClick={() => setStep((s) => s + 1)} className={`${btnPrimary} gap-2`}>
+              Avançar
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </button>
           )}
           <button type="button" onClick={() => submit("rascunho")} disabled={!!busy} className={btnGhost}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></svg>
             {busy === "rascunho" ? "salvando…" : "Salvar rascunho"}
           </button>
           {/* D16: checklist de revisao com acao para corrigir cada alerta */}

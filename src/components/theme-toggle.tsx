@@ -26,7 +26,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       document.documentElement.dataset.theme = "dark";
       localStorage.theme = "dark";
     } else {
-      delete document.documentElement.dataset.theme;
+      document.documentElement.dataset.theme = "light";
       localStorage.theme = "light";
     }
   }

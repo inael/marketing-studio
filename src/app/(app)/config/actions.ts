@@ -49,5 +49,5 @@ export async function saveConfig(formData: FormData) {
 
   await setSettings(patch);
   revalidatePath("/config");
-  redirect("/config?ok=1");
+  redirect("/config?ok=1&aviso=ok&msg=" + encodeURIComponent("Configurações salvas."));
 }

@@ -56,7 +56,7 @@ export default async function EditBrandPage({
       />
 
       {/* M15: saude da marca em uma frase e atalhos para cada ajuste */}
-      <div className="mb-6 max-w-2xl space-y-3">
+      <div className="mb-6 w-full space-y-3">
         <p className="text-sm text-dim">
           {b.ig_user_id ? "Instagram conectado" : "Instagram pendente"} · {slots.length > 0 ? `${slots.length} horário(s) fixo(s)` : "sem horários fixos"}
         </p>
@@ -79,7 +79,7 @@ export default async function EditBrandPage({
         const feitos = passos.filter((p) => p.ok).length;
         if (feitos === passos.length) return null;
         return (
-          <div className="mb-6 max-w-2xl rounded-lg border border-line bg-panel p-4">
+          <div className="mb-6 w-full rounded-lg border border-line bg-panel p-4">
             <div className="mb-3 flex items-center justify-between text-xs">
               <span className="font-medium text-ink">Primeiros passos</span>
               <span className="text-faint">{feitos} de {passos.length} feitos</span>
@@ -102,12 +102,12 @@ export default async function EditBrandPage({
         );
       })()}
 
-      <div className="mb-6 max-w-2xl">
+      <div className="mb-6 w-full">
         <label className={labelCls}>Logo da marca</label>
         <BrandLogo brandId={b.id} slug={b.slug} logo={b.logo_url} igPicture={b.ig_picture} cor={b.cor_principal} nome={b.nome} />
       </div>
 
-      <form id="identidade" action={action} className="max-w-2xl space-y-6">
+      <form id="identidade" action={action} className="w-full space-y-6">
         {/* D23: identidade com previa ao vivo e checagem de contraste */}
         <BrandIdentity
           slug={b.slug}
@@ -212,7 +212,7 @@ export default async function EditBrandPage({
         </div>
       </form>
 
-      <section id="horarios" className="mt-10 max-w-2xl border-t border-line pt-8">
+      <section id="horarios" className="mt-10 w-full border-t border-line pt-8">
         <h2 className="text-sm font-semibold text-ink">Horários fixos</h2>
         <p className="mt-1 text-xs text-dim">
           Horários padrão da marca. O &ldquo;Auto-agendar&rdquo; no Criar joga o post no próximo
@@ -304,7 +304,7 @@ export default async function EditBrandPage({
         </form>
       </section>
 
-      <section id="conta" className="mt-10 max-w-2xl border-t border-line pt-8">
+      <section id="conta" className="mt-10 w-full border-t border-line pt-8">
         <h2 className="text-sm font-semibold text-ink">Conexões</h2>
         <p className="mt-1 text-xs text-dim">
           Conecte as redes desta marca. Instagram e LinkedIn já publicam pelo estúdio.
@@ -319,7 +319,7 @@ export default async function EditBrandPage({
         </div>
       </section>
 
-      <section className="mt-10 max-w-2xl border-t border-line pt-8">
+      <section className="mt-10 w-full border-t border-line pt-8">
         <h2 className="text-sm font-semibold text-ink">Fontes de conteúdo</h2>
         <p className="mt-1 text-xs text-dim">
           Feeds RSS de notícias e concorrentes no Instagram. A IA usa como inspiração (temas e

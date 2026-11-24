@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { avisar } from "@/components/avisos";
 
 type Props = { brandId: string; brandSlug: string; igConnected: boolean; linkedinConnected: boolean };
 
@@ -63,6 +64,8 @@ export function Connections({ brandId, brandSlug, igConnected, linkedinConnected
       });
       const data = await r.json();
       setIg(r.ok ? { username: data.username, picture: data.picture } : { error: data.error ?? "falhou" });
+      if (r.ok) avisar("ok", `Instagram conectado: @${data.username}`);
+      else avisar("erro", data.error ?? "Não foi possível verificar o Instagram.");
     } catch (e) {
       setIg({ error: e instanceof Error ? e.message : "falhou" });
     } finally {

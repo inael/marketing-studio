@@ -112,7 +112,7 @@ export default async function ConsumoPage({ searchParams }: { searchParams: Prom
           <section className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-line bg-panel p-4">
               <div className="text-xs text-dim">Custo por post publicado</div>
-              <div className="mt-1 text-xl font-semibold text-ink">{publicados > 0 ? `$${(rep.totals.cost / publicados).toFixed(4)}` : "—"}</div>
+              <div className="mt-1 text-xl font-semibold text-ink">{publicados > 0 ? `$${(rep.totals.cost / publicados).toFixed(4)}` : "-"}</div>
               <div className="mt-0.5 text-[11px] text-faint">{publicados} posts publicados no período</div>
             </div>
             <div className="rounded-lg border border-line bg-panel p-4">

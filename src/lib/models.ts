@@ -15,17 +15,17 @@ export type ModelOption = { id: string; label: string };
 
 export const IMAGE_MODELS: ModelOption[] = [
   // 30x mais barato que o soul/standard pelo mesmo prompt e mesmo payload.
-  { id: "higgsfield-ai/soul/v2/standard", label: "Soul v2 — padrão (0,05 créd. · ~US$0,004)" },
-  { id: "higgsfield-ai/soul/standard", label: "Soul v1 — caro (1,5 créd. · ~US$0,094)" },
-  { id: "higgsfield-ai/soul/v2/character", label: "Soul v2 — com personagem" },
+  { id: "higgsfield-ai/soul/v2/standard", label: "Soul v2, padrão (0,05 créd. · ~US$0,004)" },
+  { id: "higgsfield-ai/soul/standard", label: "Soul v1, caro (1,5 créd. · ~US$0,094)" },
+  { id: "higgsfield-ai/soul/v2/character", label: "Soul v2, com personagem" },
 ];
 
 // Seedance saiu da lista: tanto `bytedance/seedance/v1/pro/image-to-video`
 // (que estava aqui) quanto o `/pro/fast/` do spec devolvem `model_not_found`
 // nesta conta — era opção morta no seletor. Volta quando a conta liberar.
 export const VIDEO_MODELS: ModelOption[] = [
-  { id: "higgsfield-ai/dop/standard", label: "DoP — Higgsfield" },
-  { id: "kling-video/v2.1/pro/image-to-video", label: "Kling 2.1 Pro — cinematográfico" },
+  { id: "higgsfield-ai/dop/standard", label: "DoP, Higgsfield" },
+  { id: "kling-video/v2.1/pro/image-to-video", label: "Kling 2.1 Pro, cinematográfico" },
 ];
 
 export const DEFAULT_IMAGE_MODEL = IMAGE_MODELS[0].id;
