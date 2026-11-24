@@ -63,23 +63,24 @@ export default async function BibliotecaPage({
         title="Biblioteca"
         subtitle={`${media.length} de ${mediaTodas.length} ${mediaTodas.length === 1 ? "item" : "itens"}`}
         action={
-          <Link href="/criar" className={btnPrimary}>
+          <Link href="/criar" className={`${btnPrimary} gap-2`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             Criar post
           </Link>
         }
       />
 
       {erro && <p className="mb-3 rounded-md border border-bad/30 bg-bad/5 px-3 py-2 text-sm text-bad">{erro}</p>}
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2 rounded-xl border border-line bg-panel p-3">
         {chip("Todas as marcas", !brandSlug, q({ brand: undefined }))}
         {brands.map((b) => chip(b.nome, brandSlug === b.slug, q({ brand: b.slug }), b.cor_principal))}
       </div>
-      <div className="mb-6 flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-faint">Tipo</span>
+      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-panel p-3 text-xs">
+        <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-faint">Tipo</span>
         {chip("Todos", !tipo, q({ tipo: undefined }), undefined, "tipo")}
         {chip("Imagem", tipo === "imagem", q({ tipo: "imagem" }))}
         {chip("Vídeo", tipo === "video", q({ tipo: "video" }))}
-        <span className="ml-3 text-faint">Uso</span>
+        <span className="ml-2 text-[11px] font-bold uppercase tracking-[0.16em] text-faint">Uso</span>
         {chip("Todos", !uso, q({ uso: undefined }), undefined, "uso")}
         {chip("Sem uso", uso === "sem", q({ uso: "sem" }))}
         {chip("Já usados", uso === "usado", q({ uso: "usado" }))}
@@ -100,7 +101,7 @@ export default async function BibliotecaPage({
           Nenhum arquivo com esses filtros.
         </p>
       ) : (
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {/* M13: tres colunas no celular, com o selo de uso em cada item */}
           {media.map((m) => {
             const b = m.brand_id ? byId.get(m.brand_id) : undefined;

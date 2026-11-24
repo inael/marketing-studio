@@ -28,14 +28,61 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Buscar" subtitle={q ? `“${qRaw}”` : "posts, marcas e mídia"} />
-      <form action="/busca" className="mb-4">
+      <form action="/busca" className="mb-6 flex items-center gap-2 rounded-xl border border-line bg-panel p-1.5 pl-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4 shrink-0 text-faint" strokeWidth="1.8" strokeLinecap="round">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="m20 20-4.2-4.2" />
+        </svg>
         <input
           name="q"
           defaultValue={qRaw ?? ""}
-          placeholder="Buscar em posts, marcas e mídia"
-          className="min-h-11 w-full rounded-md border border-line bg-panel2 px-3 text-sm text-ink"
+          placeholder="Digite uma palavra da legenda, uma hashtag, uma marca ou um analista"
+          className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-faint outline-none"
         />
+        <button type="submit" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-warn px-4 text-sm font-semibold text-canvas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></svg>
+          Buscar
+        </button>
       </form>
+
+      {!q && (
+        <div className="space-y-8">
+          {/* o que dá para procurar, com o tamanho de cada conjunto */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { href: "/posts", titulo: "Posts", n: posts.filter((p) => !p.deleted_at).length, texto: "legenda e hashtags" },
+              { href: "/marcas", titulo: "Marcas", n: marcas.length, texto: "nome e identificador" },
+              { href: "/biblioteca", titulo: "Mídia", n: midia.length, texto: "arquivos enviados" },
+            ].map((c) => (
+              <Link key={c.titulo} href={c.href} className="group rounded-xl border border-line bg-panel p-5 transition-colors hover:border-line2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-ink">{c.titulo}</span>
+                  <span className="font-display text-2xl font-semibold text-ink">{c.n}</span>
+                </div>
+                <div className="mt-1 text-xs text-faint">buscável por {c.texto}</div>
+              </Link>
+            ))}
+          </div>
+
+          {/* atalhos: uma busca por marca, com um toque */}
+          <div>
+            <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.16em] text-faint">Buscar por marca</div>
+            <div className="flex flex-wrap gap-2">
+              {marcas.map((m) => (
+                <Link key={m.id} href={`/busca?q=${encodeURIComponent(m.nome)}`} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-panel px-3.5 text-sm text-dim transition-colors hover:text-ink">
+                  <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: m.cor_principal }} />
+                  {m.nome}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <p className="flex items-start gap-3 rounded-xl border border-dashed border-line px-4 py-4 text-xs text-faint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="mt-0.5 h-4 w-4 shrink-0" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5M12 8h.01" /></svg>
+            <span>A busca encontra o texto da legenda e as hashtags dos posts, o nome das marcas e o endereço dos arquivos de mídia. Os resultados aparecem agrupados por tipo, e você pode filtrar por grupo.</span>
+          </p>
+        </div>
+      )}
 
       {q && (
         <div className="mb-5 flex flex-wrap gap-2">

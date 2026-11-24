@@ -6,15 +6,19 @@ import { inputCls, btnGhost } from "@/components/ui";
 export function Cofre({ marcas, settings }: { marcas: { slug: string; nome: string }[]; settings: Record<string, string> }) {
   const registro = lerRegistro(settings).slice(0, 5);
   return (
-    <section id="cofre" className="mb-8 max-w-3xl space-y-4 rounded-lg border border-line bg-panel/50 p-6">
+    <section id="cofre" className="mb-8 w-full space-y-5 rounded-xl border border-line bg-panel/50 p-6">
       <h2 className="text-sm font-semibold text-ink">Cofre por marca</h2>
       <p className="text-xs text-dim">
         Senhas e chaves ficam guardadas e nunca são mostradas de volta. Para trocar, digite um novo valor.
       </p>
 
+      <div className="grid gap-4 md:grid-cols-2">
       {marcas.map((m) => (
-        <div key={m.slug} className="rounded-md border border-line p-4">
-          <div className="mb-3 text-sm font-medium text-ink">{m.nome}</div>
+        <div key={m.slug} className="min-w-0 rounded-xl border border-line bg-panel p-4">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-panel2 text-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg></span>
+            <span className="text-sm font-semibold text-ink">{m.nome}</span>
+          </div>
           <ul className="space-y-3">
             {COFRE_ITENS.map((item) => {
               const ok = Boolean(settings[chaveCofre(m.slug, item)]);
@@ -43,6 +47,7 @@ export function Cofre({ marcas, settings }: { marcas: { slug: string; nome: stri
           </ul>
         </div>
       ))}
+      </div>
 
       <div>
         <div className="text-[11px] uppercase tracking-wide text-faint">Últimas alterações</div>

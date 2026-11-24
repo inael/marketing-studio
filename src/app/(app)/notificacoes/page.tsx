@@ -44,7 +44,7 @@ export default async function NotificacoesPage({
   return (
     <>
       <PageHeader title="Notificações" subtitle="O que precisa de você e o que aconteceu" />
-      <div className="mb-5 flex gap-2">
+      <div className="mb-5 inline-flex gap-1 rounded-xl border border-line bg-panel p-1.5">
         {aba_("acao", "Pedem ação", pedemAcao.length)}
         {aba_("info", "Informativo", informativo.length)}
       </div>
@@ -55,12 +55,13 @@ export default async function NotificacoesPage({
         ) : (
           <ul className="space-y-2">
             {pedemAcao.map((p) => (
-              <li key={p.key} className="flex items-center gap-3 rounded-lg border border-line bg-panel px-4 py-2.5">
+              <li key={p.key} className="flex min-w-0 items-center gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-bad/10 text-bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z" /><path d="M10 20.5h4" /></svg></span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm text-ink">{p.titulo}</span>
-                  <span className="block truncate text-[11px] text-dim">{p.detalhe}</span>
+                  <span className="block truncate text-sm font-medium text-ink">{p.titulo}</span>
+                  <span className="block truncate text-xs text-dim">{p.detalhe}</span>
                 </span>
-                <Link href={p.href} className={btnGhost}>
+                <Link href={p.href} className={`${btnGhost} gap-2`}>
                   {p.acao}
                 </Link>
               </li>
@@ -72,7 +73,8 @@ export default async function NotificacoesPage({
       ) : (
         <ul className="space-y-2">
           {informativo.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 rounded-lg border border-line bg-panel px-4 py-2.5">
+            <li key={p.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-panel2 text-dim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden className="h-4 w-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z" /><path d="M10 20.5h4" /></svg></span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2 truncate text-sm text-ink">
                   {Date.now() - new Date(p.updated_at).getTime() < 86400000 && (

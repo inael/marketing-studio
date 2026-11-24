@@ -39,38 +39,85 @@ export default async function ContasPage() {
     ];
   });
 
+  const ig = linhas.filter((l) => l.rede === "Instagram");
+  const li = linhas.filter((l) => l.rede === "LinkedIn");
+  const igOk = ig.filter((l) => l.ok).length;
+  const liOk = li.filter((l) => l.ok).length;
+
+  const icone = (rede: string) =>
+    rede === "Instagram" ? (
+      <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4" fill="currentColor">
+        <path d="M4.5 9h3.2v10.5H4.5V9zm1.6-5a1.85 1.85 0 1 1 0 3.7 1.85 1.85 0 0 1 0-3.7zM10 9h3.1v1.4h.05c.43-.82 1.5-1.68 3.08-1.68 3.3 0 3.9 2.17 3.9 5v5.78h-3.2v-5.12c0-1.22-.02-2.8-1.7-2.8-1.71 0-1.97 1.33-1.97 2.72v5.2H10V9z" />
+      </svg>
+    );
+
   return (
-    <>
+    <div className="space-y-8">
       <PageHeader title="Contas" subtitle="Todas as contas das marcas, com o estado de cada rede" />
-      <div className="overflow-x-auto rounded-lg border border-line">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs text-faint">
-              <th className="px-4 py-2 font-medium">Marca</th>
-              <th className="px-4 py-2 font-medium">Rede</th>
-              <th className="px-4 py-2 font-medium">Conta</th>
-              <th className="px-4 py-2 font-medium">Estado</th>
-              <th className="px-4 py-2 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map((l) => (
-              <tr key={l.key} className="border-b border-line/60">
-                <td className="px-4 py-2">
-                  <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: l.cor }} />
-                  <span className="text-ink">{l.marca}</span>
-                </td>
-                <td className="px-4 py-2 text-dim">{l.rede}</td>
-                <td className="px-4 py-2 font-mono text-xs text-faint">{l.conta}</td>
-                <td className={`px-4 py-2 text-xs ${l.ok ? "text-ok" : "text-warn"}`}>{l.estado}</td>
-                <td className="px-4 py-2 text-right">
-                  <Link href={l.href} className="text-xs text-info hover:underline">{l.acao} →</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* resumo por rede */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {[
+          { rede: "Instagram", ok: igOk, total: ig.length },
+          { rede: "LinkedIn", ok: liOk, total: li.length },
+        ].map((r) => (
+          <div key={r.rede} className="flex items-center justify-between gap-4 rounded-xl border border-line bg-panel p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-panel2 text-warn">{icone(r.rede)}</span>
+              <div>
+                <div className="text-sm font-semibold text-ink">{r.rede}</div>
+                <div className="text-xs text-faint">{r.total} marca(s)</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-display text-2xl font-semibold text-ink">{r.ok}<span className="text-base text-faint"> / {r.total}</span></div>
+              <div className="text-xs text-dim">conectadas</div>
+            </div>
+          </div>
+        ))}
       </div>
-    </>
+
+      {/* lista: uma linha por conta, com a mesma altura e as mesmas colunas */}
+      <div className="overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] gap-4 border-b border-line bg-panel2/50 px-5 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-faint">
+          <span>Marca</span>
+          <span>Rede</span>
+          <span>Conta</span>
+          <span>Estado</span>
+          <span className="sr-only">Ação</span>
+        </div>
+        <ul>
+          {linhas.map((l) => (
+            <li key={l.key} className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-4 border-b border-line/60 px-5 py-3.5 last:border-b-0">
+              <span className="flex min-w-0 items-center gap-3">
+                <span aria-hidden className="h-7 w-1 shrink-0 rounded-full" style={{ background: l.cor }} />
+                <span className="truncate text-sm font-medium text-ink">{l.marca}</span>
+              </span>
+              <span className="flex items-center gap-2 text-sm text-dim">
+                <span className="text-dim">{icone(l.rede)}</span>
+                {l.rede}
+              </span>
+              <span className="truncate font-mono text-xs text-faint">{l.conta}</span>
+              <span>
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${l.ok ? "border-ok/30 bg-ok/10 text-ok" : "border-warn/30 bg-warn/10 text-warn"}`}>
+                  <span aria-hidden>{l.ok ? "●" : "○"}</span>
+                  {l.estado}
+                </span>
+              </span>
+              <Link href={l.href} className="inline-flex min-h-9 items-center gap-1.5 justify-self-end rounded-md border border-line px-3 text-xs text-dim hover:text-ink">
+                {l.acao}
+                <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }

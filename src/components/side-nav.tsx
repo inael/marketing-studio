@@ -217,7 +217,7 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       <aside className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line bg-panel transition-[width] duration-300 md:flex ${recolhido ? "w-16" : "w-72"}`}>
-        <div className={`flex items-center ${recolhido ? "flex-col gap-3 px-2 pb-3 pt-4" : "px-4 pb-3 pt-4"}`}>
+        <div className={`flex items-center ${recolhido ? "flex-col gap-3 px-2 pb-6 pt-5" : "px-4 pb-6 pt-5"}`}>
           <Link href="/dashboard" aria-label="Marketing Studio · início" className="min-w-0 flex-1">
             <MarcaLogo compacto={recolhido} />
           </Link>
@@ -234,7 +234,7 @@ export function AppShell({
           </button>
         </div>
 
-        <nav aria-label="Menu principal" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 pb-3">
+        <nav aria-label="Menu principal" className="flex flex-1 flex-col gap-7 overflow-y-auto px-3 pb-4 pt-1">
           {GRUPOS.map((g) => (
             <div key={g.titulo}>
               {recolhido ? (
@@ -252,11 +252,12 @@ export function AppShell({
                         href={it.href}
                         title={recolhido ? it.label : undefined}
                         aria-current={on ? "page" : undefined}
-                        className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors ${recolhido ? "justify-center px-0" : ""} ${on ? "bg-panel2 text-ink" : "text-dim hover:bg-panel2/60 hover:text-ink"}`}
+                        className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors ${recolhido ? "justify-center px-0" : ""} ${on ? "relative bg-warn/10 text-ink" : "text-dim hover:bg-panel2/60 hover:text-ink"}`}
                       >
-                        <span className={on ? "text-ink" : "text-faint"}>{ICONES[it.icone]}</span>
+                        {on && <span aria-hidden className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-warn" />}
+                        <span className={on ? "text-warn" : "text-faint"}>{ICONES[it.icone]}</span>
                         <span className={`min-w-0 flex-1 ${recolhido ? "hidden" : ""}`}>
-                          <span className="block truncate text-[12px] font-semibold uppercase leading-tight tracking-[0.08em]">{it.label}</span>
+                          <span className="block truncate text-[13px] font-semibold leading-tight">{it.label}</span>
                           <span className="block truncate text-[11px] leading-tight text-faint">{it.desc}</span>
                         </span>
                         {n > 0 && (
@@ -336,12 +337,12 @@ export function AppShell({
           {/* D05: faixa de destaque na cor da marca escolhida */}
           {marcaSel && <div className="mb-4 h-1 rounded-full" style={{ background: marcaSel.cor }} aria-hidden />}
           <RetornoSessao />
-          <div className="mb-6 flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-dim">Marketing Studio</span>
+          <div className="mb-10 flex items-center gap-2">
+            <span className="text-sm font-semibold text-dim">Marketing studio</span>
           </div>
           {/* D03: sub-telas da secao como abas no topo; o trilho fica so com as secoes */}
           {current && current.items.length > 1 && (
-            <nav aria-label="Abas da seção" className="mb-6 flex flex-wrap gap-1 rounded-xl border border-line bg-panel p-1.5">
+            <nav aria-label="Abas da seção" className="mb-6 flex flex-nowrap gap-1 overflow-x-auto rounded-xl border border-line bg-panel p-1.5">
               {current.items.map((it) => {
                 const on = pathname === it.href || pathname.startsWith(it.href + "/");
                 return (
@@ -349,7 +350,7 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     aria-current={on ? "page" : undefined}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${on ? "bg-panel2 text-ink shadow-sm" : "text-faint hover:bg-panel2/60 hover:text-dim"}`}
+                    className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${on ? "bg-panel2 text-ink shadow-sm" : "text-faint hover:bg-panel2/60 hover:text-dim"}`}
                   >
                     <span className={on ? "text-warn" : "text-faint"}>{ICONE_SUBTELA[it.href]}</span>
                     {it.label}
